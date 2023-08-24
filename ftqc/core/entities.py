@@ -25,14 +25,15 @@ class Measurements:
     def get_measured_states(self):
         return self.measurements.keys()
     
-    def get_probabilitiy(self, state):
+    def get_count_for(self, state):
         if state not in self.get_measured_states():
             return 0.0
         return self.measurements[state]
 
 class QuantumDevice:
-    def __init__(self, unique_name) -> None:
+    def __init__(self, unique_name, shots) -> None:
         self.unique_name = unique_name
+        self.shots = shots
 
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, QuantumDevice):
@@ -59,7 +60,7 @@ class QuantumDevice:
 
 class QuantumComputerSimulator(QuantumDevice):
     def __init__(self, simulator, noise_model_backend=None, shots=None) -> None:
-        super().__init__(simulator.name() if noise_model_backend == None else simulator.name() + "_" + noise_model_backend.name())
+        super().__init__(simulator.name() if noise_model_backend == None else simulator.name() + "_" + noise_model_backend.name(), shots=shots)
         self.simulator = simulator
         self.noise_model = NoiseModel.from_backend(noise_model_backend, warnings=False) if noise_model_backend != None else None
         self.shots = shots
@@ -87,7 +88,7 @@ class QuantumComputerSimulator(QuantumDevice):
     
 class IBMQuantumComputer(QuantumDevice):
     def __init__(self, backend, shots=4096) -> None:
-        super().__init__(backend.name())
+        super().__init__(backend.name(), shots=shots)
         self.backend = backend
         self.shots = shots
 

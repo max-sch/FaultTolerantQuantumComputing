@@ -20,15 +20,15 @@ class LinearOpinionPool(MeasurementCombiner):
 
         measured_states = measurements[0].get_measured_states()
         for measured_state in measured_states:
-            normalized_prob = 0.0
+            normalized_counts = 0.0
             for measurement in measurements:
-                probability = measurement.get_probabilitiy(measured_state)
+                count = measurement.get_count_for(measured_state)
                 weight = self.weights[measurement.generated_from_channel]
-                normalized_prob += probability * weight 
+                normalized_counts += count * weight 
             
-            combined_measurements[measured_state] = normalized_prob
+            combined_measurements[measured_state] = normalized_counts
 
-        device_names = [name.unique_name for name in self.weights.keys()]
+        device_names = {name.unique_name for name in self.weights.keys()}
         quantum_device = QuantumDevice("_".join(device_names))
         return Measurements(quantum_device, combined_measurements)
             
