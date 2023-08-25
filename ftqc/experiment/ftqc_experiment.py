@@ -16,8 +16,8 @@ class FaultTolerantQCExperiment:
             for circuit in batch.circuits:
                 ground_truth = simulate_and_retrieve_best_solution(circuit)
                 for qcontainer in self.ft_qcontainers:
-                    agg_measurements = orch_result.get_result_for(circuit, qcontainer)
-                    results.append(ExperimentResult(qcontainer, ground_truth, agg_measurements))
+                    aggregated, single = orch_result.get_result_for(circuit, qcontainer)
+                    results.append(ExperimentResult(qcontainer, ground_truth, aggregated, single))
         return results
     
     def save(self, results, results_dir):
@@ -27,7 +27,8 @@ class FaultTolerantQCExperiment:
         pass
 
 class ExperimentResult:
-    def __init__(self, ft_qcontainer, ground_truth, agg_measurements) -> None:
+    def __init__(self, ft_qcontainer, ground_truth, agg_measurements, single_measurements) -> None:
         self.ft_qcontainer = ft_qcontainer.id
         self.ground_truth = ground_truth
         self.agg_measurements = agg_measurements
+        self.single_measurements = single_measurements 

@@ -133,8 +133,14 @@ class QuantumContainerOrchestrator:
         self.aggregated_results = []
 
     def get_result_for(self, circuit, container):
-        criterion = lambda entry: entry[0] == circuit and entry[1] == container
-        return filter(criterion, self.aggregated_results)
+        #criterion = lambda entry: entry[0] == circuit and entry[1] == container
+        #result = filter(criterion, self.aggregated_results)
+        #return (result[2], result[3])
+        for entry in self.aggregated_results:
+            if entry[0] == circuit and entry[1] == container:
+                return (entry[2], entry[3])
+        
+        raise Exception("There is no result for container {0} with circuit {1}".format(container.id, circuit.id))
 
     def orchestrate_executions(self, circuit_batch):
         orchestrations, partitioned_circuits = self.create_orchestrations_and_partitions(circuit_batch)
@@ -174,4 +180,4 @@ class QuantumContainerOrchestrator:
                 measurements.append(Measurements(channel, measurement))
             
             aggregate = container.aggregate(measurements)
-            self.aggregated_results.append((original_circuit, container, aggregate))
+            self.aggregated_results.append((original_circuit, container, aggregate, measurements))
