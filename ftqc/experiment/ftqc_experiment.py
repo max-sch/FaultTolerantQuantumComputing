@@ -11,15 +11,16 @@ class FaultTolerantQCExperiment:
     def run_experiment(self):
         results = []
         for batch in self.circuit_provider.get():
-            orch_result = QuantumContainerOrchestrator(self.ft_qcontainers).orchestrate_executions(batch)
+            orch_result = QuantumContainerOrchestrator(self.ft_qcontainers)
+            orch_result.orchestrate_executions(batch)
             for circuit in batch.circuits:
                 ground_truth = simulate_and_retrieve_best_solution(circuit)
                 for qcontainer in self.ft_qcontainers:
-                    agg_measurements = Measurements(orch_result.get_result_for(circuit, qcontainer))
+                    agg_measurements = orch_result.get_result_for(circuit, qcontainer)
                     results.append(ExperimentResult(qcontainer, ground_truth, agg_measurements))
         return results
     
-    def save(results, results_dir):
+    def save(self, results, results_dir):
         pass
 
     def process_and_visualize(self, results):

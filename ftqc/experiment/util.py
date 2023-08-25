@@ -7,7 +7,7 @@ def simulate(batch):
 
 def simulate_and_retrieve_best_solution(circuit):
     result = QuantumComputerSimulator.create_perfect_simulator().execute(circuit)
-    stv = result.get_statevector(circuit, decimals=3)
+    stv = result.get_statevector(circuit.qiskit_circuit, decimals=3)
     probs = stv.probabilities()
     bestIdxs = np.argwhere(probs == np.amax(probs)).flatten().tolist()
     n = (int)(log2(len(probs)))

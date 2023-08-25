@@ -146,10 +146,10 @@ class QuantumContainerOrchestrator:
         partitioned_circuits = {device:[] for c in self.orchestrated_containers for device in c.get_devices()}
         for circuit in circuit_batch.circuits:
             for container in self.orchestrated_containers:
-                transpiled_circuits = []
+                transpiled_circuits = {}
                 for channel in container.channels:
                     transpiled_circuit = channel.apply(circuit)
-                    transpiled_circuits.append(transpiled_circuit)
+                    transpiled_circuits[channel] = transpiled_circuit
                     partitioned_circuits[channel.device].append(transpiled_circuit)
 
                 orchestrations.append((circuit, container, transpiled_circuits))
@@ -165,14 +165,13 @@ class QuantumContainerOrchestrator:
             transpiled_circuits = orch[2]
             
             measurements = []
-            for t_circuit in transpiled_circuits:
-                for channel in container.channels:
-                    try:
-                        measurement = executions_results[channel.device].get_counts(t_circuit.qiskit_circuit)
-                    except QiskitError:
-                        continue
+            for channel, t_circuit in transpiled_circuits.items():
+                try:
+                    measurement = executions_results[channel.device].get_counts(t_circuit.qiskit_circuit)
+                except QiskitError:
+                    raise Exception("There are no measurements for circuit: " + t_circuit.id)
 
-                    measurements.append(Measurements(channel, measurement))
+                measurements.append(Measurements(channel, measurement))
             
             aggregate = container.aggregate(measurements)
             self.aggregated_results.append((original_circuit, container, aggregate))
