@@ -133,9 +133,6 @@ class QuantumContainerOrchestrator:
         self.aggregated_results = []
 
     def get_result_for(self, circuit, container):
-        #criterion = lambda entry: entry[0] == circuit and entry[1] == container
-        #result = filter(criterion, self.aggregated_results)
-        #return (result[2], result[3])
         for entry in self.aggregated_results:
             if entry[0] == circuit and entry[1] == container:
                 return (entry[2], entry[3])
