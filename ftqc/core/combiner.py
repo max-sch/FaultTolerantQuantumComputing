@@ -28,18 +28,16 @@ class LinearOpinionPool(MeasurementCombiner):
             
             combined_measurements[measured_state] = normalized_counts
 
-        device_names = {name.unique_name for name in self.weights.keys()}
-        quantum_device = QuantumDevice("_".join(device_names))
-        return Measurements(quantum_device, combined_measurements)
+        return Measurements(None, combined_measurements)
             
 
     def assert_equal_devices(self, measurements):
-        expected_channels = {channel.device for channel in self.weights.keys()}
+        expected_channels = self.weights.keys()
         actual_channels = {m.generated_from_channel for m in measurements}
 
         if len(expected_channels) != len(actual_channels):
              raise Exception("The devices of the measurement are in conformance with the registered devices.")
 
-        for actual_device in actual_channels:
-            if actual_device not in expected_channels:
+        for actual_channel in actual_channels:
+            if actual_channel not in expected_channels:
                 raise Exception("The devices of the measurement are in conformance with the registered devices.")

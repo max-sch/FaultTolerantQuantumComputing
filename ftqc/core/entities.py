@@ -165,14 +165,14 @@ class QuantumContainerOrchestrator:
             transpiled_circuits = orch[2]
             
             measurements = []
-            for t in transpiled_circuits:
-                for d in container.get_devices():
+            for t_circuit in transpiled_circuits:
+                for channel in container.channels:
                     try:
-                        measurement = executions_results[d].get_counts(t.qiskit_circuit)
+                        measurement = executions_results[channel.device].get_counts(t_circuit.qiskit_circuit)
                     except QiskitError:
                         continue
 
-                    measurements.append(Measurements(d, measurement))
+                    measurements.append(Measurements(channel, measurement))
             
             aggregate = container.aggregate(measurements)
             self.aggregated_results.append((original_circuit, container, aggregate))
