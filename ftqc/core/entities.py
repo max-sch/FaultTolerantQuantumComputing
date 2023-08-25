@@ -29,6 +29,9 @@ class Measurements:
         if state not in self.get_measured_states():
             return 0.0
         return self.measurements[state]
+    
+    def rank(self):
+        return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1])}
 
 class QuantumDevice:
     def __init__(self, unique_name, shots) -> None:

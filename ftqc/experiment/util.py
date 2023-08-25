@@ -13,3 +13,14 @@ def simulate_and_retrieve_best_solution(circuit):
     n = (int)(log2(len(probs)))
     getbinary = lambda x, n: format(x, 'b').zfill(n)
     return [getbinary(i, n) for i in bestIdxs]
+
+def determine_position(correct_state, measurements):
+    pos = 0
+    for state in measurements.rank().keys():
+        if state == correct_state:
+            return pos
+        else:
+            pos += 1
+
+    raise Exception("The measurements do not include " + correct_state)
+
