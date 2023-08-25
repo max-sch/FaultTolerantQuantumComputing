@@ -44,7 +44,7 @@ class FtqcExperimentSuite(PyExperimentSuite):
 
         results = self.ftqc_exp.run_experiment()
         self.ftqc_exp.save(results, self.results_dir)
-        self.ftqc_exp.process_and_visualize(results)
+        self.ftqc_exp.evaluate(results)
 
         ret = {"rep": rep, "iter": n}
         return ret

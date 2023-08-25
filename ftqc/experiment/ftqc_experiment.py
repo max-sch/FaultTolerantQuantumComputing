@@ -23,7 +23,7 @@ class FaultTolerantQCExperiment:
     def save(self, results, results_dir):
         pass
 
-    def process_and_visualize(self, results):
+    def evaluate(self, results):
         pass
 
 class ExperimentResult:
