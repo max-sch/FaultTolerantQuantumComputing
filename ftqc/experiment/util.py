@@ -1,5 +1,9 @@
 import numpy as np
+import json
+from datetime import datetime
 from math import log2
+from os import mkdir
+from os.path import join, exists
 from core.entities import QuantumComputerSimulator
 
 def simulate(batch):
@@ -23,4 +27,20 @@ def determine_position(correct_state, measurements):
             pos += 1
 
     raise Exception("The measurements do not include " + correct_state)
+
+def save_results(results, result_dir, file_name = None):
+    if not exists(result_dir):
+        mkdir(result_dir)
+
+    if file_name is None:
+        name = "results_" + datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + ".json"
+        file_name = join(result_dir, name)
+
+    with open(file_name, "w") as json_file:
+        results_json = []
+        for result in results:
+            results_json.append(result.to_json())
+            json_file.write(results_json)
+
+    print("Results have been written to file: " + file_name)
 
