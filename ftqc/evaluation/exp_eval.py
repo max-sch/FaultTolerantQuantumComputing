@@ -4,7 +4,7 @@ class FtqcExperimentEvaluator:
     def __init__(self, results) -> None:
         self.results = results
 
-    def evaluate(self, qcontainers):
+    def evaluate(self):
         pass
 
         

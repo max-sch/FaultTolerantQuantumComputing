@@ -1,5 +1,4 @@
 import numpy as np
-import json
 from datetime import datetime
 from math import log2
 from os import mkdir
@@ -37,10 +36,9 @@ def save_results(results, result_dir, file_name = None):
         file_name = join(result_dir, name)
 
     with open(file_name, "w") as json_file:
-        results_json = []
         for result in results:
-            results_json.append(result.to_json())
-            json_file.write(results_json)
+            for each in result.single_measurements:
+                each.generated_from_channel = "_".join([result.ft_qcontainer, each.generated_from_channel.device.unique_name])
+            json_file.write(result.to_json())
 
     print("Results have been written to file: " + file_name)
-
