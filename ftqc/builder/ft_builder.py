@@ -1,5 +1,5 @@
 from core.combiner import LinearOpinionPool
-from core.entities import FaultTolerantQuantumContainer
+from core.entities import FaultTolerantQuantumContainer, Measurements
 from core.qswitches import QuantumSwitchUnit
 
 class FaultTolerantPatternBuilder:
@@ -48,6 +48,73 @@ class CombinerPatternBuilder(FaultTolerantPatternBuilder):
         
         return FaultTolerantQuantumContainer(self.pattern_name, self.channels, self.combiner.combine)
     
+class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
+    class SpecialCaseComparatorMeasurements(Measurements):
+        def __init__(self, decorated_measurements, accept) -> None:
+            super().__init__(decorated_measurements.generated_from_channel, 
+                             decorated_measurements.measurements)
+            self.accept = accept
+
+        def is_accepted(self):
+            return self.accept
+        
+        def is_rejected(self):
+            return not self.accept
+    
+    def __init__(self, pattern_name) -> None:
+        super().__init__(pattern_name)
+        self.primary_channel = None
+        self.comparator_channel = None
+        self.num_matching_solutions = 1
+
+    def with_primary_channel(self, channel):
+        self.primary_channel = channel
+        return self
+    
+    def and_comparator(self, channel):
+        self.comparator_channel = channel
+        return self
+    
+    def num_of_matching_solutions(self, num_matching_solutions):
+        self.num_matching_solutions = num_matching_solutions
+        return self
+    
+    def build(self):
+        super().build()
+
+        if self.primary_channel == None:
+            raise Exception("A primary channel must be specified.")
+        
+        if self.comparator_channel == None:
+            raise Exception("A comparator must be specified.")
+        
+        def accept(measurements):
+            if len(measurements) != 2:
+                raise Exception("There must be only two mearuements.")
+            
+            channel_to_measurements = {channel:None for channel in [self.primary_channel, self.comparator_channel]}
+            for m in measurements:
+                if m.generated_from_channel == self.primary_channel:
+                    channel_to_measurements[self.primary_channel] = m
+
+                if m.generated_from_channel == self.comparator_channel:
+                    channel_to_measurements[self.comparator_channel] = m
+            
+            if any(value == None for value in channel_to_measurements.values()):
+                raise Exception("There are only one or no measurements for the primary and comparator channel.")
+            
+            first_n_solutions_of_primary = [channel_to_measurements[self.primary_channel].rank()[i] for i in range(self.num_matching_solutions)]
+            first_n_solutions_of_comparator = [channel_to_measurements[self.comparator_channel].rank()[i] for i in range(self.num_matching_solutions)]
+
+            for i in range(self.num_matching_solutions):
+                if first_n_solutions_of_primary[i] not in first_n_solutions_of_comparator:
+                    return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(channel_to_measurements[self.primary_channel], False)
+            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(channel_to_measurements[self.primary_channel], True)
+        
+        return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)
+            
+
+
 class SparingPatternBuilder(FaultTolerantPatternBuilder):
     def __init__(self, pattern_name) -> None:
         super().__init__(pattern_name)
@@ -86,6 +153,9 @@ class SparingPatternBuilder(FaultTolerantPatternBuilder):
         
         if len(self.spares) < 1:
             raise Exception("There must be at least one spare")
+        
+        self.qswitch.operational = self.operational
+        self.qswitch.spares = self.spares
 
         qswitch_units = self.operational + self.spares
         if self.error_detector != None and all(qswitch_unit.error_detector == None for qswitch_unit in qswitch_units):

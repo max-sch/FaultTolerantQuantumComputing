@@ -21,6 +21,7 @@ class Measurements:
     def __init__(self, generated_from_channel, measurements) -> None:
         self.generated_from_channel = generated_from_channel
         self.measurements = measurements
+        self.num_counts = sum(count for count in measurements.values())
 
     def get_measured_states(self):
         return self.measurements.keys()
@@ -29,6 +30,12 @@ class Measurements:
         if state not in self.get_measured_states():
             return 0.0
         return self.measurements[state]
+    
+    def get_probability_for(self, state):
+        return self.get_count_for(state) / self.num_counts
+    
+    def get_probabilities(self):
+        return [self.get_probability_for(state) for state in self.get_measured_states()]
     
     def rank(self):
         return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1])}

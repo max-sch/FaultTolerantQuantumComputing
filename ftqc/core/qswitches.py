@@ -18,9 +18,9 @@ class QuantumSwitchUnit:
         return self.channel == measurements.generated_from_channel
 
 class QuantumRedundancySwitch:
-    def __init__(self, operational, spares) -> None:
-        self.operational = operational
-        self.spares = spares
+    def __init__(self) -> None:
+        self.operational = None
+        self.spares = None
 
     def switch_if_necessary(self, all_measurements):
         qswitch_units = self.operational + self.spares
@@ -47,9 +47,6 @@ class QuantumRedundancySwitch:
         '''Main method for switching between spares and operational'''
 
 class SimpleQuantumRedundancySwitch(QuantumRedundancySwitch):
-    def __init__(self, operational, spares) -> None:
-        super().__init__(operational, spares)
-
     def do_switch(self):
         for spare in self.spares:
             if not spare.fault_detected():
