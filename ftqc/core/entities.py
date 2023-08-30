@@ -30,8 +30,9 @@ class Measurements:
             return 0.0
         return self.measurements[state]
     
+    #rank in descending order
     def rank(self):
-        return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1])}
+        return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1], reverse=True)}
 
 class QuantumDevice:
     def __init__(self, unique_name, shots) -> None:
