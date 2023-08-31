@@ -42,11 +42,11 @@ class FtqcExperimentSuite(PyExperimentSuite):
     def iterate(self, params, rep, n):
         print('Start running the experiment')
 
-        results = self.ftqc_exp.run_experiment()
-        self.ftqc_exp.save(results, self.results_dir)
-        self.ftqc_exp.evaluate(results, self.results_dir)
+        exp_results = self.ftqc_exp.run_experiment()
+        self.ftqc_exp.save(exp_results, self.results_dir)
+        eval_results = self.ftqc_exp.evaluate(exp_results, self.results_dir)
 
-        ret = {"rep": rep, "iter": n}
+        ret = {"rep": rep, "iter": n, "eval_results": eval_results}
         return ret
 
 if __name__ == '__main__':

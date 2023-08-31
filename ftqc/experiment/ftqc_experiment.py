@@ -61,7 +61,5 @@ class ExperimentResult:
         '''Determines the size of the top ten'''
         return max(math.ceil(len(self.single_measurements) * 0.1), 3)
     
-    
-    
     def to_json(self, encoder=json.JSONEncoder):
         return json.dumps(self, sort_keys=True, indent=4, cls=encoder)

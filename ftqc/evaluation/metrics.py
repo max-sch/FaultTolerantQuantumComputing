@@ -6,19 +6,11 @@ class Metric:
 
 class NumberOfCorrectCircuits(Metric):
     def evaluate(self, positions):
-        counter = 0
-        for position in positions:
-            if position == 0:
-                counter += 1
-        return counter
+        return sum(1 for position in positions if position == 0)
 
 class NumberOfTopTenCircuits(Metric):
     def evaluate(self, positions, top_ten):
-        counter = 0
-        for i in range(len(positions)):
-            if positions[i] <= top_ten[i]:
-                counter += 1
-        return counter
+        return sum(1 for i in range(len(positions)) if positions[i] <= top_ten[i])
 
 class DirectComparison(Metric):
     def evaluate(self, agg_positions, positions):
@@ -30,11 +22,11 @@ class DirectComparison(Metric):
         for agg_pos, pos in zip(agg_positions, positions):
             if agg_pos == pos:
                 equal += 1
-            if agg_pos < pos:
+            elif agg_pos < pos:
                 greater += 1
             else:
                 less += 1
 
-        sum = greater + less + less
+        sum = greater + equal + less
 
         return (less / sum, equal / sum, greater / sum)
