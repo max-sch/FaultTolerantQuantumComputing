@@ -30,7 +30,7 @@ class FtqcExperimentSuite(PyExperimentSuite):
         builder = CombinerPatternBuilder("DifferentOptimizationLevelCombiner")
         for i in range(params["num_opt_level"]):
             builder.add_channel(DifferentOptimizationLevel(device_provider.default_device, i))
-        builder.combine_measurements_uniformly();
+        builder.combine_measurements_uniformly()
         different_opt_level_container = builder.build()
 
         c_provider = RandomCircuitProvider(4, batch_size=2, max_num_qubits=3, max_depth=10)
@@ -44,7 +44,7 @@ class FtqcExperimentSuite(PyExperimentSuite):
 
         results = self.ftqc_exp.run_experiment()
         self.ftqc_exp.save(results, self.results_dir)
-        self.ftqc_exp.evaluate(results)
+        self.ftqc_exp.evaluate(results, self.results_dir)
 
         ret = {"rep": rep, "iter": n}
         return ret
