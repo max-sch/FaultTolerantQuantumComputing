@@ -28,7 +28,7 @@ def determine_position(correct_state, measurements):
         else:
             pos += 1
 
-    raise Exception("The measurements do not include " + correct_state)
+    raise Exception(f"The measurements do not include {correct_state}")
 
 def save_results(results, result_dir, file_name = None):
     if not exists(result_dir):
