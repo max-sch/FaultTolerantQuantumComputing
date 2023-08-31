@@ -31,7 +31,7 @@ class VaryingTranspilationSeedGeneration(QuantumRedundancyChannel):
         super().__init__(device)
         self.seed = random.randrange(0, 10000)
         self.id = "_".join(["VaryingTranspilationSeedGeneration", device.unique_name, str(self.seed), self.id])
-        
+
     def create_variant_of(self, circuit):
         print("Apply varying transpilation seed channel")
         circuit.qiskit_circuit.name = f"{circuit.id}-{self.seed}"

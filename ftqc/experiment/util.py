@@ -40,8 +40,6 @@ def save_results(results, result_dir, file_name = None):
 
     with open(file_name, "w") as json_file:
         for result in results:
-            #for each in result.single_measurements:
-            #    each.generated_from_channel = each.generated_from_channel.id
             json_file.write(result.to_json(encoder=FtqcJSONEncoder))
 
     print("Results have been written to file: " + file_name)
@@ -49,6 +47,6 @@ def save_results(results, result_dir, file_name = None):
 class FtqcJSONEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if isinstance(o, QuantumRedundancyChannel):
-            return "Quantum redundancy channel: " + o.id
+            return o.id
         
-        return json.JSONEncoder.default(self, o)
+        return o.__dict__
