@@ -38,7 +38,7 @@ class Measurements:
         return [self.get_probability_for(state) for state in self.get_measured_states()]
     
     def rank(self):
-        return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1])}
+        return {k:v for k, v in sorted(self.measurements.items(), key=lambda item: item[1])}
 
 class QuantumDevice:
     def __init__(self, unique_name, shots) -> None:

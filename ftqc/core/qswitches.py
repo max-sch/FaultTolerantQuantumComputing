@@ -23,7 +23,7 @@ class QuantumRedundancySwitch:
         self.spares = None
 
     def switch_if_necessary(self, all_measurements):
-        qswitch_units = self.operational + self.spares
+        qswitch_units = [self.operational] + self.spares
         for qswitch_unit in qswitch_units:
             qswitch_unit.measurements = None
             for measurements in all_measurements:
@@ -45,6 +45,7 @@ class QuantumRedundancySwitch:
     
     def do_switch(self):
         '''Main method for switching between spares and operational'''
+        pass
 
 class SimpleQuantumRedundancySwitch(QuantumRedundancySwitch):
     def do_switch(self):

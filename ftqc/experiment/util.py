@@ -1,9 +1,12 @@
+from typing import Any
 import numpy as np
+import json
 from datetime import datetime
 from math import log2
 from os import mkdir
 from os.path import join, exists
 from core.entities import QuantumComputerSimulator
+from core.qchannels import QuantumRedundancyChannel
 
 def simulate(batch):
     return [simulate_and_retrieve_best_solution(c) for c in batch]
@@ -37,8 +40,15 @@ def save_results(results, result_dir, file_name = None):
 
     with open(file_name, "w") as json_file:
         for result in results:
-            for each in result.single_measurements:
-                each.generated_from_channel = "_".join([result.ft_qcontainer, each.generated_from_channel.device.unique_name])
-            json_file.write(result.to_json())
+            #for each in result.single_measurements:
+            #    each.generated_from_channel = each.generated_from_channel.id
+            json_file.write(result.to_json(encoder=FtqcJSONEncoder))
 
     print("Results have been written to file: " + file_name)
+
+class FtqcJSONEncoder(json.JSONEncoder):
+    def default(self, o: Any) -> Any:
+        if isinstance(o, QuantumRedundancyChannel):
+            return "Quantum redundancy channel: " + o.id
+        
+        return json.JSONEncoder.default(self, o)

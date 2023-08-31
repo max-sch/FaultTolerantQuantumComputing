@@ -52,5 +52,5 @@ class ExperimentResult:
         '''Determines the position of the aggregated measurements'''
         return determine_position(self.ground_truth, self.agg_measurements)
     
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+    def to_json(self, encoder=json.JSONEncoder):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4, cls=encoder)

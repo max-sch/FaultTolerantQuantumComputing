@@ -38,7 +38,7 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def __init__(self, f_divergence, threshold) -> None:
         def closeness_to_uniform_dist(measurements):
             p_dist = measurements.get_probabilities()
-            q_dist = [1/measurements.num_counts for _ in len(p_dist)]
+            q_dist = [1/measurements.num_counts for _ in range(len(p_dist))]
             return f_divergence(p_dist, q_dist)
         self.measure_closeness_to_uniform_dist = closeness_to_uniform_dist
         self.threshold = threshold
@@ -65,4 +65,5 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
         return not self.reject(measurements)
     
     def reject(self, measurements):
-        return self.measure_closeness_to_uniform_dist(measurements) < self.threshold
+        closeness = self.measure_closeness_to_uniform_dist(measurements)
+        return closeness < self.threshold

@@ -55,6 +55,12 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
                              decorated_measurements.measurements)
             self.accept = accept
 
+        def accept(measurements):
+            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(measurements, True)
+        
+        def reject(measurements):
+            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(measurements, False)
+
         def is_accepted(self):
             return self.accept
         
@@ -88,6 +94,9 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
         if self.comparator_channel == None:
             raise Exception("A comparator must be specified.")
         
+        if self.num_matching_solutions <= 0:
+            raise Exception("The number of matching solutions must be greater than zero.")
+        
         def accept(measurements):
             if len(measurements) != 2:
                 raise Exception("There must be only two mearuements.")
@@ -103,13 +112,22 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
             if any(value == None for value in channel_to_measurements.values()):
                 raise Exception("There are only one or no measurements for the primary and comparator channel.")
             
-            first_n_solutions_of_primary = [channel_to_measurements[self.primary_channel].rank()[i] for i in range(self.num_matching_solutions)]
-            first_n_solutions_of_comparator = [channel_to_measurements[self.comparator_channel].rank()[i] for i in range(self.num_matching_solutions)]
+            first_n_solutions_of_primary = []
+            for k, _ in channel_to_measurements[self.primary_channel].rank().items():
+                first_n_solutions_of_primary.append(k)
+                if len(first_n_solutions_of_primary) == self.num_matching_solutions:
+                    break
+
+            first_n_solutions_of_comparator = []
+            for k, _ in channel_to_measurements[self.comparator_channel].rank().items():
+                first_n_solutions_of_comparator.append(k)
+                if len(first_n_solutions_of_comparator) == self.num_matching_solutions:
+                    break
 
             for i in range(self.num_matching_solutions):
                 if first_n_solutions_of_primary[i] not in first_n_solutions_of_comparator:
-                    return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(channel_to_measurements[self.primary_channel], False)
-            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(channel_to_measurements[self.primary_channel], True)
+                    return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements.reject(channel_to_measurements[self.primary_channel])
+            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements.accept(channel_to_measurements[self.primary_channel])
         
         return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)
             
@@ -157,7 +175,7 @@ class SparingPatternBuilder(FaultTolerantPatternBuilder):
         self.qswitch.operational = self.operational
         self.qswitch.spares = self.spares
 
-        qswitch_units = self.operational + self.spares
+        qswitch_units = [self.operational] + self.spares
         if self.error_detector != None and all(qswitch_unit.error_detector == None for qswitch_unit in qswitch_units):
             for qswitch_unit in qswitch_units:
                 qswitch_unit.error_detector = self.error_detector
@@ -166,7 +184,7 @@ class SparingPatternBuilder(FaultTolerantPatternBuilder):
         else:
             raise Exception("The assignment between channels and error detection components is not valid")
         
-        channels = [qswitch_unit.channel for qswitch_unit in self.operational + self.spares]
+        channels = [qswitch_unit.channel for qswitch_unit in qswitch_units]
         return FaultTolerantQuantumContainer(self.pattern_name, channels, self.qswitch.switch_if_necessary)
         
 

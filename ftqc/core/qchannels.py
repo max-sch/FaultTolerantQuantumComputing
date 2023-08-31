@@ -1,4 +1,5 @@
 import random
+from uuid import uuid4
 from qiskit import transpile
 from core.entities import Circuit
 
@@ -7,6 +8,15 @@ DEFAULT_SEED = 123
 class QuantumRedundancyChannel:
     def __init__(self, device) -> None:
         self.device = device
+        self.id = str(uuid4())
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def __eq__(self, __value: object) -> bool:
+        if isinstance(__value, QuantumRedundancyChannel):
+            return __value.id == self.id
+        return False
 
     def apply(self, circuit):
         transpilation = self.create_variant_of(circuit)
@@ -20,17 +30,7 @@ class VaryingTranspilationSeedGeneration(QuantumRedundancyChannel):
     def __init__(self, device) -> None:
         super().__init__(device)
         self.seed = random.randrange(0, 10000)
-
-    def __key(self):
-        return (self.device, self.seed)
-
-    def __hash__(self) -> int:
-        return hash(self.__key())
-
-    def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, VaryingTranspilationSeedGeneration):
-            return __value.__key() == self.__key()
-        return False
+        self.id = "_".join(["VaryingTranspilationSeedGeneration", device.unique_name, str(self.seed), self.id])
         
     def create_variant_of(self, circuit):
         print("Apply varying transpilation seed channel")
@@ -42,17 +42,7 @@ class VaryingTranspilationSeedGeneration(QuantumRedundancyChannel):
 class HeterogeneousQuantumDeviceBackend(QuantumRedundancyChannel):
     def __init__(self, device) -> None:
         super().__init__(device)
-
-    def __key(self):
-        return (self.device)
-
-    def __hash__(self) -> int:
-        return hash(self.__key())
-
-    def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, HeterogeneousQuantumDeviceBackend):
-            return __value.__key() == self.__key()
-        return False
+        self.id = "_".join(["HeterogeneousQuantumDeviceBackend", device.unique_name, self.id])
 
     def create_variant_of(self, circuit):
         print("Apply heterogeneous quantum device channel")
@@ -65,17 +55,7 @@ class DifferentOptimizationLevel(QuantumRedundancyChannel):
     def __init__(self, device, opt_level) -> None:
         super().__init__(device)
         self.opt_level = opt_level
-
-    def __key(self):
-        return (self.device, self.opt_level)
-
-    def __hash__(self) -> int:
-        return hash(self.__key())
-
-    def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, DifferentOptimizationLevel):
-            return __value.__key() == self.__key()
-        return False
+        self.id = "_".join(["DifferentOptimizationLevel", device.unique_name, str(opt_level), self.id])
 
     def create_variant_of(self, circuit):
         print("Apply different optimization level channel")
