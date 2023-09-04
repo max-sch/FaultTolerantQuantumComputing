@@ -49,24 +49,6 @@ class CombinerPatternBuilder(FaultTolerantPatternBuilder):
         return FaultTolerantQuantumContainer(self.pattern_name, self.channels, self.combiner.combine)
     
 class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
-    class SpecialCaseComparatorMeasurements(Measurements):
-        def __init__(self, decorated_measurements, accept) -> None:
-            super().__init__(decorated_measurements.generated_from_channel, 
-                             decorated_measurements.measurements)
-            self.accept = accept
-
-        def accept(measurements):
-            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(measurements, True)
-        
-        def reject(measurements):
-            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements(measurements, False)
-
-        def is_accepted(self):
-            return self.accept
-        
-        def is_rejected(self):
-            return not self.accept
-    
     def __init__(self, pattern_name) -> None:
         super().__init__(pattern_name)
         self.primary_channel = None
@@ -123,11 +105,13 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
                 first_n_solutions_of_comparator.append(k)
                 if len(first_n_solutions_of_comparator) == self.num_matching_solutions:
                     break
-
+            
+            measurements = channel_to_measurements[self.primary_channel]
             for i in range(self.num_matching_solutions):
                 if first_n_solutions_of_primary[i] not in first_n_solutions_of_comparator:
-                    return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements.reject(channel_to_measurements[self.primary_channel])
-            return ComparisonPatternBuilder.SpecialCaseComparatorMeasurements.accept(channel_to_measurements[self.primary_channel])
+                    measurements.accepted = False
+                    return measurements
+            return measurements
         
         return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)
             

@@ -18,9 +18,10 @@ class Circuit:
         return False
 
 class Measurements:
-    def __init__(self, generated_from_channel, measurements) -> None:
+    def __init__(self, generated_from_channel, measurements, accepted=True) -> None:
         self.generated_from_channel = generated_from_channel
         self.measurements = measurements
+        self.accepted = accepted
         self.num_counts = sum(count for count in measurements.values())
 
     def get_measured_states(self):

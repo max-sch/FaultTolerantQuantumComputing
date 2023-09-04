@@ -1,4 +1,3 @@
-from typing import Any
 import numpy as np
 import json
 from datetime import datetime
@@ -6,7 +5,6 @@ from math import log2
 from os import mkdir
 from os.path import join, exists
 from core.entities import QuantumComputerSimulator
-from core.qchannels import QuantumRedundancyChannel
 
 def simulate(batch):
     return [simulate_and_retrieve_best_solution(c) for c in batch]
@@ -30,7 +28,12 @@ def determine_position(correct_state, measurements):
 
     return 2 ** len(correct_state)
 
-def save_results(results, result_dir, file_name = None):
+def load_results(result_file, hook):
+    with open(result_file, "r") as json_file:
+        json_file_content = json_file.read()
+        return json.loads(json_file_content, object_hook=hook)
+
+def save_results(results, result_dir, json_encoder, file_name = None):
     if not exists(result_dir):
         mkdir(result_dir)
 
@@ -39,14 +42,7 @@ def save_results(results, result_dir, file_name = None):
         file_name = join(result_dir, name)
 
     with open(file_name, "w") as json_file:
-        for result in results:
-            json_file.write(result.to_json(encoder=FtqcJSONEncoder))
+        json_results = json.dumps(results, sort_keys=True, indent=4, cls=json_encoder)
+        json_file.write(json_results)
 
     print("Results have been written to file: " + file_name)
-
-class FtqcJSONEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if isinstance(o, QuantumRedundancyChannel):
-            return o.id
-        
-        return o.__dict__
