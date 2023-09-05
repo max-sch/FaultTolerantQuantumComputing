@@ -1,8 +1,8 @@
 import pandas as pd
-from ..ftqc.provider.circuit_provider import QasmBasedCircuitProvider
-from ..ftqc.core.qerror_detection import MeasurementNoiseQuantifier
-from ..ftqc.core.entities import Measurements
-from ..ftqc.core.entities import QuantumComputerSimulator
+from provider.circuit_provider import QasmBasedCircuitProvider
+from core.qerror_detection import MeasurementNoiseQuantifier
+from core.entities import Measurements
+from core.entities import QuantumComputerSimulator
 from qiskit.tools.visualization import plot_histogram
 
 from openpyxl import Workbook
