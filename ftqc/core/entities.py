@@ -1,5 +1,6 @@
 from qiskit import Aer, execute
-from qiskit.providers.aer.noise import NoiseModel
+from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError,
+    pauli_error, depolarizing_error, thermal_relaxation_error)
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from itertools import groupby
@@ -71,20 +72,24 @@ class QuantumDevice:
         pass
 
 class QuantumComputerSimulator(QuantumDevice):
-    def __init__(self, simulator, noise_model_backend=None, shots=None) -> None:
+    def __init__(self, simulator, noise_model_backend=None, shots=None, custom_noise_model=False) -> None:
         super().__init__(simulator.name() if noise_model_backend == None else simulator.name() + "_" + noise_model_backend.name(), shots=shots)
         self.simulator = simulator
         self.noise_model = NoiseModel.from_backend(noise_model_backend, warnings=False) if noise_model_backend != None else None
         self.shots = shots
+        self.custom_noise_model = custom_noise_model
+        self.noise_model = NoiseModel() if self.custom_noise_model else self.noise_model
+
 
     def create_perfect_simulator():
         simulator = Aer.get_backend('statevector_simulator')
         return QuantumComputerSimulator(simulator)
     
     #TODO: check whether this can be achieved by just using fake providers for IBMQuantumComputer
-    def create_noisy_simulator(backend, shots=1024):
+    def create_noisy_simulator(backend=None, shots=1024):
         simulator = Aer.get_backend('qasm_simulator')
-        return QuantumComputerSimulator(simulator, noise_model_backend=backend, shots=shots)
+
+        return QuantumComputerSimulator(simulator, noise_model_backend=backend, shots=shots, custom_noise_model=True if backend == None else False)
     
     def get_backend(self):
         return self.simulator
@@ -97,7 +102,17 @@ class QuantumComputerSimulator(QuantumDevice):
         qiskit_circuits = [c.qiskit_circuit for c in circuits]
         job = execute(qiskit_circuits, self.simulator, shots=self.shots, noise_model=self.noise_model)
         return job.result()
-    
+
+    def modify_noise(self):
+        prob_1 = 0.001  # 1-qubit gate
+        prob_2 = 0.01   # 2-qubit gate
+
+        error_1 = depolarizing_error(prob_1, 1)
+        error_2 = depolarizing_error(prob_2, 2)
+
+        self.noise_model.add_all_qubit_quantum_error(error_1, ['rz', 'sx', 'x'])
+        self.noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+
 class IBMQuantumComputer(QuantumDevice):
     def __init__(self, backend, shots=4096) -> None:
         super().__init__(backend.name(), shots=shots)
