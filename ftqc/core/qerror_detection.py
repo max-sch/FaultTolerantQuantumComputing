@@ -5,6 +5,10 @@ class QuantumFaultDetector:
         '''Main method for checking measurements in terms of faults'''
         pass
 
+def hellinger(p,q):
+    return sum([(sqrt(t[0])-sqrt(t[1]))*(sqrt(t[0])-sqrt(t[1]))\
+                for t in zip(p,q)])/sqrt(2.)
+
 def shannon_entropy(p_dist):
     return sum(p * log(p) for p in p_dist) * (-1)
 
@@ -60,6 +64,9 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
 
     def using_bhattacharyya(threshold):
         return MeasurementNoiseQuantifier(bhattacharyya, threshold)
+    
+    def using_hellinger(threshold):
+        return MeasurementNoiseQuantifier(hellinger, threshold)
 
     def accept(self, measurements):
         return not self.reject(measurements)
