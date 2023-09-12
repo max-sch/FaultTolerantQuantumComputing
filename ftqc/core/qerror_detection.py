@@ -5,12 +5,15 @@ class QuantumFaultDetector:
         '''Main method for checking measurements in terms of faults'''
         pass
 
-def hellinger(p,q):
-    return sum([(sqrt(t[0])-sqrt(t[1]))*(sqrt(t[0])-sqrt(t[1]))\
-                for t in zip(p,q)])/sqrt(2.)
-
 def shannon_entropy(p_dist):
     return sum(p * log(p) for p in p_dist) * (-1)
+
+'''Assuming that the probabilities of p_dist and q_dist are ordered according to the values'''
+def hellinger(p_dist, q_dist):
+    assert len(p_dist) == len(q_dist)
+    
+    return sum([(sqrt(t[0])-sqrt(t[1]))*(sqrt(t[0])-sqrt(t[1]))\
+                for t in zip(p_dist, q_dist)])/sqrt(2.)
 
 '''Assuming that the probabilities of p_dist and q_dist are ordered according to the values'''
 def kl_divergence(p_dist, q_dist):
