@@ -11,7 +11,7 @@ class ConformalSet:
         
         self.state_vecs = measurements[:n]
 
-    def top_n_from(measurements, n):
+    def top_n_of(measurements, n):
         elements = measurements.rank().keys()
         return ConformalSet(list(elements), n)
 
@@ -21,6 +21,12 @@ class ConformalSet:
 
         intersection = list(set(self.state_vecs) & set(other.state_vecs))
         return ConformalSet(intersection, len(intersection))
+    
+    def is_subset(self, other):
+        if not isinstance(other, ConformalSet):
+            raise Exception("Can only check subsets of conformal sets")
+
+        return all(state_vec in self.state_vecs for state_vec in other.state_vecs)
 
 class ConformalBasedMajorityVoting:
     def __init__(self, agreement_threshold) -> None:

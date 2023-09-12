@@ -84,35 +84,21 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
             if len(measurements) != 2:
                 raise Exception("There must be only two mearuements.")
             
-            channel_to_measurements = {channel:None for channel in [self.primary_channel, self.comparator_channel]}
             for m in measurements:
                 if m.generated_from_channel == self.primary_channel:
-                    channel_to_measurements[self.primary_channel] = m
+                    measurements_primary = m
 
                 if m.generated_from_channel == self.comparator_channel:
-                    channel_to_measurements[self.comparator_channel] = m
+                    measurements_comparator = m
             
-            if any(value == None for value in channel_to_measurements.values()):
+            if measurements_primary == None or measurements_comparator == None:
                 raise Exception("There are only one or no measurements for the primary and comparator channel.")
             
-            first_n_solutions_of_primary = []
-            for k, _ in channel_to_measurements[self.primary_channel].rank().items():
-                first_n_solutions_of_primary.append(k)
-                if len(first_n_solutions_of_primary) == self.num_matching_solutions:
-                    break
-
-            first_n_solutions_of_comparator = []
-            for k, _ in channel_to_measurements[self.comparator_channel].rank().items():
-                first_n_solutions_of_comparator.append(k)
-                if len(first_n_solutions_of_comparator) == self.num_matching_solutions:
-                    break
+            top_n_primary = ConformalSet.top_n_of(measurements_primary, self.num_matching_solutions)
+            top_n_comparator = ConformalSet.top_n_of(measurements_comparator, self.num_matching_solutions)
             
-            measurements = channel_to_measurements[self.primary_channel]
-            for i in range(self.num_matching_solutions):
-                if first_n_solutions_of_primary[i] not in first_n_solutions_of_comparator:
-                    measurements.accepted = False
-                    return measurements
-            return measurements
+            measurements_primary.accepted = top_n_primary.is_subset(top_n_comparator)
+            return measurements_primary
         
         return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)
 
@@ -222,7 +208,7 @@ class ConformalMeasurementsBuilder(FaultTolerantPatternBuilder):
             if agreement_threshold < 1:
                 agreement_threshold = 1
 
-            conformal_sets = [ConformalSet.top_n_from(m, top_n) for m in measurements]
+            conformal_sets = [ConformalSet.top_n_of(m, top_n) for m in measurements]
             votes = ConformalBasedMajorityVoting(agreement_threshold).vote(conformal_sets)
             conformity = calculate_conformity(conformal_sets, top_n)
             return Measurements(None, votes, accepted=conformity >= self.conformity_threshold)
