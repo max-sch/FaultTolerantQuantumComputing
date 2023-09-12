@@ -1,9 +1,7 @@
 from qiskit import Aer, execute
-from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError,
-    pauli_error, depolarizing_error, thermal_relaxation_error)
+from qiskit_aer.noise import NoiseModel, depolarizing_error
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from itertools import groupby
 
 class Circuit:
     def __init__(self, id, qiskit_circuit) -> None:
@@ -42,6 +40,9 @@ class Measurements:
     #rank in descending order
     def rank(self):
         return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1], reverse=True)}
+    
+    def num_of_measured_states(self):
+        return len(self.measurements.keys())
 
 class QuantumDevice:
     def __init__(self, unique_name, shots) -> None:

@@ -1,6 +1,7 @@
 from core.combiner import LinearOpinionPool
 from core.entities import FaultTolerantQuantumContainer, Measurements
 from core.qswitches import QuantumSwitchUnit
+from core.conformal_measurements import ConformalBasedMajorityVoting, ConformalSet, calculate_conformity
 
 class FaultTolerantPatternBuilder:
     def __init__(self, pattern_name) -> None:
@@ -114,8 +115,6 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
             return measurements
         
         return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)
-            
-
 
 class SparingPatternBuilder(FaultTolerantPatternBuilder):
     def __init__(self, pattern_name) -> None:
@@ -170,14 +169,62 @@ class SparingPatternBuilder(FaultTolerantPatternBuilder):
         
         channels = [qswitch_unit.channel for qswitch_unit in qswitch_units]
         return FaultTolerantQuantumContainer(self.pattern_name, channels, self.qswitch.switch_if_necessary)
+    
+class ConformalMeasurementsBuilder(FaultTolerantPatternBuilder):
+    default_conformity_threshold = 0.8
+    agreement_multiplier = 0.75
+    default_top_n_rate = 0.25
+    
+    def __init__(self, pattern_name) -> None:
+        super().__init__(pattern_name)
+        self.channels = []
+        self.top_n_rate = None
+        self.conformity_threshold = None
+
+    def add_channel(self, channel):
+        self.channels.append(channel)
+        return self
+    
+    def set_optional_top_n_rate(self, top_n_rate):
+        self.top_n_rate = top_n_rate
+        return self
+    
+    def with_min_conformity(self, conformity_threshold):
+        self.conformity_threshold = conformity_threshold
+        return self
+    
+    def default_conformity(self):
+        self.conformity_threshold = ConformalMeasurementsBuilder.default_conformity_threshold
+        return self
+    
+    def build(self):
+        super().build()
+
+        if len(self.channels) < 1:
+            raise Exception("There must be at least one channel.")
         
+        if self.top_n_rate == None:
+            self.top_n_rate = ConformalMeasurementsBuilder.default_top_n_rate
+
+        if self.conformity_threshold == None:
+            self.conformity_threshold = ConformalMeasurementsBuilder.default_conformity_threshold
 
         
-        
+        def conformal_based_majority_voting(measurements):
+            if len(measurements) < 2:
+                raise Exception("There must be at least two mearuements.")
+            
+            top_n = (int) (measurements[0].num_of_measured_states() * self.top_n_rate)
+            if (top_n < 1):
+                top_n = 1
 
+            agreement_threshold = (int) (ConformalMeasurementsBuilder.agreement_multiplier * top_n)
+            if agreement_threshold < 1:
+                agreement_threshold = 1
 
+            conformal_sets = [ConformalSet.top_n_from(m, top_n) for m in measurements]
+            votes = ConformalBasedMajorityVoting(agreement_threshold).vote(conformal_sets)
+            conformity = calculate_conformity(conformal_sets, top_n)
+            return Measurements(None, votes, accepted=conformity >= self.conformity_threshold)
 
-
-  
-
-
+        return FaultTolerantQuantumContainer(self.pattern_name, self.channels, conformal_based_majority_voting)

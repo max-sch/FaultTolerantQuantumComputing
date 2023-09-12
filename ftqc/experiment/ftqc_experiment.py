@@ -51,21 +51,23 @@ class ExperimentResult:
         self.top_ten_size = top_ten_size if top_ten_size != None else self._top_ten_size()
 
     def avg_postion(self):
-        '''Determines the average position of the correct state in the indivdual (non-combined) measurements'''
+        '''Determines the average position of the correct state in the indivdual (non-aggregated) measurements'''
         positions = [determine_position(self.ground_truth, measurements) for measurements in self.single_measurements]
 
         avg_pos = sum(positions) / len(positions)
         return round(avg_pos)
     
-
     def position_of_closest(self):
-        '''Determines the position of the an individual measurements closest to the correct state'''
-        pos = None
+        '''Determines the position of closest state vector to the correct state'''
+        closest = len(self.single_measurements[0].measurements)
         for measurements in self.single_measurements:
             pos = determine_position(self.ground_truth, measurements)
+            if pos < closest:
+                closest = pos
             if pos == 0:
-                return pos
-        return pos          
+                break
+
+        return closest          
 
     def position_of_agg(self):
         '''Determines the position of the aggregated measurements'''

@@ -77,3 +77,7 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def reject(self, measurements):
         closeness = self.measure_closeness_to_uniform_dist(measurements)
         return closeness < self.threshold
+    
+class MeasurementComparison(QuantumFaultDetector):
+    def accept(self, measurments):
+        return super().accept(measurments)
