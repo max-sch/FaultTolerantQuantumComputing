@@ -1,5 +1,9 @@
 from math import exp
 
+default_conformity_threshold = 0.8
+agreement_multiplier = 0.75
+default_top_n_rate = 0.25
+
 class ConformalSet:
     def __init__(self, measurements, n) -> None:
         '''The measurements must be ordered according to their probabilities'''
@@ -21,12 +25,6 @@ class ConformalSet:
 
         intersection = list(set(self.state_vecs) & set(other.state_vecs))
         return ConformalSet(intersection, len(intersection))
-    
-    def is_subset(self, other):
-        if not isinstance(other, ConformalSet):
-            raise Exception("Can only check subsets of conformal sets")
-
-        return all(state_vec in self.state_vecs for state_vec in other.state_vecs)
 
 class ConformalBasedMajorityVoting:
     def __init__(self, agreement_threshold) -> None:

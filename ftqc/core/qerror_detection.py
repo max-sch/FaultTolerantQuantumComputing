@@ -1,5 +1,5 @@
 from math import log, sqrt
-from core.conformal_measurements import ConformalSet
+from core.conformal_measurements import ConformalSet, default_top_n_rate
 
 class QuantumFaultDetector:
     def accept(self, measurments):
@@ -75,10 +75,18 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
         return not self.reject(measurements)
     
     def reject(self, measurements):
-        closeness = self.measure_closeness_to_uniform_dist(measurements)
+        if len(measurements) != 1:
+            raise Exception("There must be only a single set of measurements.")
+        
+        closeness = self.measure_closeness_to_uniform_dist(measurements[0])
         return closeness < self.threshold
     
 class MeasurementComparison(QuantumFaultDetector):
+    def __init__(self, primary_channel, comparator_channel, num_matching_solutions=None) -> None:
+        self.primary_channel = primary_channel
+        self.comparator_channel = comparator_channel
+        self.num_matching_solutions = num_matching_solutions
+
     def accept(self, measurements):
         if len(measurements) != 2:
                 raise Exception("There must be only two mearuements.")
@@ -86,14 +94,20 @@ class MeasurementComparison(QuantumFaultDetector):
         for m in measurements:
             if m.generated_from_channel == self.primary_channel:
                 measurements_primary = m
-
-            if m.generated_from_channel == self.comparator_channel:
+            elif m.generated_from_channel == self.comparator_channel:
                 measurements_comparator = m
         
         if measurements_primary == None or measurements_comparator == None:
             raise Exception("There are only one or no measurements for the primary and comparator channel.")
         
-        top_n_primary = ConformalSet.top_n_of(measurements_primary, self.num_matching_solutions)
-        top_n_comparator = ConformalSet.top_n_of(measurements_comparator, self.num_matching_solutions)
+        if self.num_matching_solutions == None:
+            n = (int) (measurements[0].num_of_measured_states() * default_top_n_rate)
+            n = n if n > 0 else 0
+        else:
+            n = self.num_matching_solutions
+
+        top_n_primary = ConformalSet.top_n_of(measurements_primary, n)
+        top_n_comparator = ConformalSet.top_n_of(measurements_comparator, n)
+        intersection = top_n_primary.intersection(top_n_comparator)
         
-        return top_n_primary.is_subset(top_n_comparator)
+        return len(intersection.state_vecs) == n
