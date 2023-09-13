@@ -1,4 +1,5 @@
 from math import log, sqrt
+from core.conformal_measurements import ConformalSet
 
 class QuantumFaultDetector:
     def accept(self, measurments):
@@ -64,7 +65,6 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def using_jensen_shannon_divergence(threshold):
         return MeasurementNoiseQuantifier(jensen_shannon_divergence, threshold)
 
-
     def using_bhattacharyya(threshold):
         return MeasurementNoiseQuantifier(bhattacharyya, threshold)
     
@@ -79,5 +79,21 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
         return closeness < self.threshold
     
 class MeasurementComparison(QuantumFaultDetector):
-    def accept(self, measurments):
-        return super().accept(measurments)
+    def accept(self, measurements):
+        if len(measurements) != 2:
+                raise Exception("There must be only two mearuements.")
+            
+        for m in measurements:
+            if m.generated_from_channel == self.primary_channel:
+                measurements_primary = m
+
+            if m.generated_from_channel == self.comparator_channel:
+                measurements_comparator = m
+        
+        if measurements_primary == None or measurements_comparator == None:
+            raise Exception("There are only one or no measurements for the primary and comparator channel.")
+        
+        top_n_primary = ConformalSet.top_n_of(measurements_primary, self.num_matching_solutions)
+        top_n_comparator = ConformalSet.top_n_of(measurements_comparator, self.num_matching_solutions)
+        
+        return top_n_primary.is_subset(top_n_comparator)

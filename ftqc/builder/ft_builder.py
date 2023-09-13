@@ -1,6 +1,7 @@
 from core.combiner import LinearOpinionPool
 from core.entities import FaultTolerantQuantumContainer, Measurements
 from core.qswitches import QuantumSwitchUnit
+from core.qerror_detection import MeasurementComparison
 from core.conformal_measurements import ConformalBasedMajorityVoting, ConformalSet, calculate_conformity
 
 class FaultTolerantPatternBuilder:
@@ -81,23 +82,12 @@ class ComparisonPatternBuilder(FaultTolerantPatternBuilder):
             raise Exception("The number of matching solutions must be greater than zero.")
         
         def accept(measurements):
-            if len(measurements) != 2:
-                raise Exception("There must be only two mearuements.")
+            measurements_primary = measurements[0]
+            if measurements[1].generated_from_channel == self.primary_channel:
+                measurements_primary = measurements[1]
             
-            for m in measurements:
-                if m.generated_from_channel == self.primary_channel:
-                    measurements_primary = m
+            measurements_primary.accepted = MeasurementComparison().accept(measurements)
 
-                if m.generated_from_channel == self.comparator_channel:
-                    measurements_comparator = m
-            
-            if measurements_primary == None or measurements_comparator == None:
-                raise Exception("There are only one or no measurements for the primary and comparator channel.")
-            
-            top_n_primary = ConformalSet.top_n_of(measurements_primary, self.num_matching_solutions)
-            top_n_comparator = ConformalSet.top_n_of(measurements_comparator, self.num_matching_solutions)
-            
-            measurements_primary.accepted = top_n_primary.is_subset(top_n_comparator)
             return measurements_primary
         
         return FaultTolerantQuantumContainer(self.pattern_name, [self.primary_channel, self.comparator_channel], accept)

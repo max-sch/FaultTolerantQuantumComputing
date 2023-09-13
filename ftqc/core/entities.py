@@ -90,7 +90,10 @@ class QuantumComputerSimulator(QuantumDevice):
     def create_noisy_simulator(backend=None, shots=1024):
         simulator = Aer.get_backend('qasm_simulator')
 
-        return QuantumComputerSimulator(simulator, noise_model_backend=backend, shots=shots, custom_noise_model=True if backend == None else False)
+        return QuantumComputerSimulator(simulator, 
+                                        noise_model_backend=backend, 
+                                        shots=shots, 
+                                        custom_noise_model=True if backend == None else False)
     
     def get_backend(self):
         return self.simulator
