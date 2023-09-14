@@ -14,6 +14,10 @@ class QuantumDeviceProvider:
             backend = self.provider.get_backend(backend_name)
 
         self.default_device = IBMQuantumComputer(backend)
+
+    def max_job_size_for(self, device):
+        backend = self.provider.get_backend(device.unique_name)
+        return backend.configuration().max_experiments 
     
     def provided_devices(self, min_qubits=10):
         return [IBMQuantumComputer(b) for b in self.provider.backends() if b.configuration().n_qubits >= min_qubits]

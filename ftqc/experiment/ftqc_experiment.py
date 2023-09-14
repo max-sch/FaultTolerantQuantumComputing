@@ -2,28 +2,29 @@ import json
 import re
 import math
 from typing import Any
-from provider.circuit_provider import CircuitProvider, RandomCircuitProvider
 from core.entities import QuantumContainerOrchestrator, Measurements
 from core.qchannels import QuantumRedundancyChannel
 from experiment.util import simulate_and_retrieve_best_solution, determine_position, save_results, load_results
 from evaluation.exp_eval import FtqcExperimentEvaluator
 
 class FaultTolerantQCExperiment:
-    def __init__(self, *ft_qcontainers, circuit_provider = RandomCircuitProvider(500)):
+    def __init__(self, circuit_provider, qdevice_provider, *ft_qcontainers):
         self.ft_qcontainers = list(ft_qcontainers)
-        self.circuit_provider: CircuitProvider = circuit_provider
+        self.circuit_provider = circuit_provider
+        self.qdevice_provider = qdevice_provider
 
     def run_experiment(self):
         results = []
-        for batch in self.circuit_provider.get():
-            orch_result = QuantumContainerOrchestrator(self.ft_qcontainers)
-            orch_result.orchestrate_executions(batch)
-            for circuit in batch.circuits:
-                ground_truth = simulate_and_retrieve_best_solution(circuit)
-                for qcontainer in self.ft_qcontainers:
-                    aggregated, single = orch_result.get_result_for(circuit, qcontainer)
-                    #TODO: check whether ground truth should be a set
-                    results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
+        
+        orch_result = QuantumContainerOrchestrator(self.ft_qcontainers, self.qdevice_provider)
+        orch_result.orchestrate_executions(self.circuit_provider)
+        for circuit in self.circuit_provider.get():
+            ground_truth = simulate_and_retrieve_best_solution(circuit)
+            for qcontainer in self.ft_qcontainers:
+                aggregated, single = orch_result.get_result_for(circuit, qcontainer)
+                #TODO: check whether ground truth should be a set
+                results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
+        
         return results
     
     def save(self, results, result_dir):

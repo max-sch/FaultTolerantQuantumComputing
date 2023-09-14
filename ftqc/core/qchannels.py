@@ -20,7 +20,8 @@ class QuantumRedundancyChannel:
 
     def apply(self, circuit):
         transpilation = self.create_variant_of(circuit)
-        return Circuit(circuit.id + "_transpiled", transpilation)
+        transpilation.name = f"{circuit.id}-{self.id}"
+        return Circuit(transpilation.name, transpilation)
 
     def create_variant_of(self, circuit):
         '''Execute the circuit and return measurements'''
@@ -34,7 +35,6 @@ class VaryingTranspilationSeedGeneration(QuantumRedundancyChannel):
 
     def create_variant_of(self, circuit):
         print("Apply varying transpilation seed channel")
-        circuit.qiskit_circuit.name = f"{circuit.id}-{self.seed}"
         return transpile(circuit.qiskit_circuit, 
                          backend=self.device.get_backend(), 
                          seed_transpiler=self.seed)
@@ -46,7 +46,6 @@ class HeterogeneousQuantumDeviceBackend(QuantumRedundancyChannel):
 
     def create_variant_of(self, circuit):
         print("Apply heterogeneous quantum device channel")
-        circuit.qiskit_circuit.name = f"{circuit.id}-{self.device}"
         return transpile(circuit.qiskit_circuit, 
                   backend=self.device.get_backend(), 
                   seed_transpiler=DEFAULT_SEED)
@@ -59,7 +58,6 @@ class DifferentOptimizationLevel(QuantumRedundancyChannel):
 
     def create_variant_of(self, circuit):
         print("Apply different optimization level channel")
-        circuit.qiskit_circuit.name = f"{circuit.id}-{DEFAULT_SEED}-{self.opt_level}"
         return transpile(circuit.qiskit_circuit, 
                          backend=self.device.get_backend(), 
                          optimization_level=self.opt_level, 
