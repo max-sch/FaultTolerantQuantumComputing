@@ -22,7 +22,9 @@ class FaultTolerantQCExperiment:
             ground_truth = simulate_and_retrieve_best_solution(circuit)
             for qcontainer in self.ft_qcontainers:
                 aggregated, single = orch_result.get_result_for(circuit, qcontainer)
-                #TODO: check whether ground truth should be a set
+                if len(ground_truth) != 1:
+                    raise Exception("Only single solutions are considered as ground truth, no sets.")
+
                 results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
         
         return results
