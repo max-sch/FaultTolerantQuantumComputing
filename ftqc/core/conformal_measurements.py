@@ -23,8 +23,7 @@ class ConformalSet:
         if not isinstance(other, ConformalSet):
             raise Exception("Can only construct intersections with conformal sets")
 
-        intersection = list(set(self.state_vecs) & set(other.state_vecs))
-        return ConformalSet(intersection, len(intersection))
+        return list(set(self.state_vecs) & set(other.state_vecs))
 
 class ConformalBasedMajorityVoting:
     def __init__(self, agreement_threshold) -> None:
@@ -38,8 +37,8 @@ class ConformalBasedMajorityVoting:
             first = conf_set_pair[0]
             second = conf_set_pair[1]
             intersection = first.intersection(second)
-            if len(intersection.state_vecs) >= self.agreement_threshold:
-                for state_vec in intersection.state_vecs:
+            if len(intersection) >= self.agreement_threshold:
+                for state_vec in intersection:
                     votes[state_vec] += 1
         
         return votes 
@@ -74,7 +73,7 @@ def calculate_conformity(conformal_sets, top_n):
         for conf_set_pair in iterator:
             first = conf_set_pair[0]
             second = conf_set_pair[1]
-            matches = len(first.intersection(second).state_vecs)
+            matches = len(first.intersection(second))
 
             score += (2 * matches / top_n) - 1
 

@@ -102,7 +102,7 @@ class MeasurementComparison(QuantumFaultDetector):
         
         if self.num_matching_solutions == None:
             n = (int) (measurements[0].num_of_measured_states() * default_top_n_rate)
-            n = n if n > 0 else 0
+            n = n if n > 0 else 1
         else:
             n = self.num_matching_solutions
 
@@ -110,4 +110,4 @@ class MeasurementComparison(QuantumFaultDetector):
         top_n_comparator = ConformalSet.top_n_of(measurements_comparator, n)
         intersection = top_n_primary.intersection(top_n_comparator)
         
-        return len(intersection.state_vecs) == n
+        return len(intersection) == n
