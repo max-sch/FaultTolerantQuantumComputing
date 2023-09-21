@@ -8,8 +8,8 @@ from experiment.util import simulate_and_retrieve_best_solution, determine_posit
 from evaluation.exp_eval import FtqcExperimentEvaluator
 
 class FaultTolerantQCExperiment:
-    def __init__(self, circuit_provider, qdevice_provider, *ft_qcontainers):
-        self.ft_qcontainers = list(ft_qcontainers)
+    def __init__(self, circuit_provider, qdevice_provider, ft_qcontainers):
+        self.ft_qcontainers = ft_qcontainers
         self.circuit_provider = circuit_provider
         self.qdevice_provider = qdevice_provider
 
@@ -22,10 +22,7 @@ class FaultTolerantQCExperiment:
             ground_truth = simulate_and_retrieve_best_solution(circuit)
             for qcontainer in self.ft_qcontainers:
                 aggregated, single = orch_result.get_result_for(circuit, qcontainer)
-                if len(ground_truth) != 1:
-                    raise Exception("Only single solutions are considered as ground truth, no sets.")
-
-                results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
+                results.append(ExperimentResult(qcontainer.id, ground_truth, aggregated, single))
         
         return results
     

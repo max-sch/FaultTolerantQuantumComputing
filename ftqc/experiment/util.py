@@ -18,15 +18,20 @@ def simulate_and_retrieve_best_solution(circuit):
     getbinary = lambda x, n: format(x, 'b').zfill(n)
     return [getbinary(i, n) for i in bestIdxs]
 
-def determine_position(correct_state, measurements):
+def determine_position(correct_states, measurements):
+    max_count = 0
+    for state in correct_states:
+        if measurements.get_count_for(state) >= max_count:
+            best_state = state
+    
     pos = 0
     for state in measurements.rank().keys():
-        if state == correct_state:
+        if state == best_state:
             return pos
         else:
             pos += 1
 
-    return 2 ** len(correct_state)
+    return 2 ** len(best_state)
 
 def load_results(result_file, hook):
     with open(result_file, "r") as json_file:
