@@ -1,20 +1,16 @@
 from math import log, sqrt
-from core.conformal_measurements import ConformalSet, default_top_n_rate
 
 class QuantumFaultDetector:
     def accept(self, measurments):
         '''Main method for checking measurements in terms of faults'''
         pass
 
+def hellinger(p,q):
+    return sum([(sqrt(t[0])-sqrt(t[1]))*(sqrt(t[0])-sqrt(t[1]))\
+                for t in zip(p,q)])/sqrt(2.)
+
 def shannon_entropy(p_dist):
     return sum(p * log(p) for p in p_dist) * (-1)
-
-'''Assuming that the probabilities of p_dist and q_dist are ordered according to the values'''
-def hellinger(p_dist, q_dist):
-    assert len(p_dist) == len(q_dist)
-    
-    return sum([(sqrt(t[0])-sqrt(t[1]))*(sqrt(t[0])-sqrt(t[1]))\
-                for t in zip(p_dist, q_dist)])/sqrt(2.)
 
 '''Assuming that the probabilities of p_dist and q_dist are ordered according to the values'''
 def kl_divergence(p_dist, q_dist):
@@ -65,6 +61,7 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def using_jensen_shannon_divergence(threshold):
         return MeasurementNoiseQuantifier(jensen_shannon_divergence, threshold)
 
+
     def using_bhattacharyya(threshold):
         return MeasurementNoiseQuantifier(bhattacharyya, threshold)
     
@@ -75,39 +72,5 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
         return not self.reject(measurements)
     
     def reject(self, measurements):
-        if len(measurements) != 1:
-            raise Exception("There must be only a single set of measurements.")
-        
-        closeness = self.measure_closeness_to_uniform_dist(measurements[0])
+        closeness = self.measure_closeness_to_uniform_dist(measurements)
         return closeness < self.threshold
-    
-class MeasurementComparison(QuantumFaultDetector):
-    def __init__(self, primary_channel, comparator_channel, num_matching_solutions=None) -> None:
-        self.primary_channel = primary_channel
-        self.comparator_channel = comparator_channel
-        self.num_matching_solutions = num_matching_solutions
-
-    def accept(self, measurements):
-        if len(measurements) != 2:
-                raise Exception("There must be only two mearuements.")
-            
-        for m in measurements:
-            if m.generated_from_channel == self.primary_channel:
-                measurements_primary = m
-            elif m.generated_from_channel == self.comparator_channel:
-                measurements_comparator = m
-        
-        if measurements_primary == None or measurements_comparator == None:
-            raise Exception("There are only one or no measurements for the primary and comparator channel.")
-        
-        if self.num_matching_solutions == None:
-            n = (int) (measurements[0].num_of_measured_states() * default_top_n_rate)
-            n = n if n > 0 else 1
-        else:
-            n = self.num_matching_solutions
-
-        top_n_primary = ConformalSet.top_n_of(measurements_primary, n)
-        top_n_comparator = ConformalSet.top_n_of(measurements_comparator, n)
-        intersection = top_n_primary.intersection(top_n_comparator)
-        
-        return len(intersection) == n

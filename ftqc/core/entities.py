@@ -1,8 +1,9 @@
 from qiskit import Aer, execute
-from qiskit_aer.noise import NoiseModel, depolarizing_error
+from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError,
+    pauli_error, depolarizing_error, thermal_relaxation_error)
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from math import ceil
+from itertools import groupby
 
 class Circuit:
     def __init__(self, id, qiskit_circuit) -> None:
@@ -41,9 +42,6 @@ class Measurements:
     #rank in descending order
     def rank(self):
         return {k: v for k, v in sorted(self.measurements.items(), key=lambda item: item[1], reverse=True)}
-    
-    def num_of_measured_states(self):
-        return len(self.measurements.keys())
 
 class QuantumDevice:
     def __init__(self, unique_name, shots) -> None:
@@ -91,10 +89,7 @@ class QuantumComputerSimulator(QuantumDevice):
     def create_noisy_simulator(backend=None, shots=1024):
         simulator = Aer.get_backend('qasm_simulator')
 
-        return QuantumComputerSimulator(simulator, 
-                                        noise_model_backend=backend, 
-                                        shots=shots, 
-                                        custom_noise_model=True if backend == None else False)
+        return QuantumComputerSimulator(simulator, noise_model_backend=backend, shots=shots, custom_noise_model=True if backend == None else False)
     
     def get_backend(self):
         return self.simulator
@@ -160,9 +155,8 @@ class FaultTolerantQuantumContainer:
         return hash(self.id)
     
 class QuantumContainerOrchestrator:
-    def __init__(self, qcontainers, qdevice_provider) -> None:
+    def __init__(self, qcontainers) -> None:
         self.orchestrated_containers = set(qcontainers)
-        self.qdevice_provider = qdevice_provider
         self.aggregated_results = []
 
     def get_result_for(self, circuit, container):
@@ -172,15 +166,15 @@ class QuantumContainerOrchestrator:
         
         raise Exception("There is no result for container {0} with circuit {1}".format(container.id, circuit.id))
 
-    def orchestrate_executions(self, circuit_provider):
-        orchestrations, partitioned_circuits = self.prepare_for_execution(circuit_provider)
-        result_manager = self.execute(partitioned_circuits)
-        self.aggregate_results(orchestrations, result_manager)
+    def orchestrate_executions(self, circuit_batch):
+        orchestrations, partitioned_circuits = self.create_orchestrations_and_partitions(circuit_batch)
+        executions_results = self.execute(partitioned_circuits)
+        self.aggregate_results(orchestrations, executions_results)
 
-    def prepare_for_execution(self, circuit_provider):
+    def create_orchestrations_and_partitions(self, circuit_batch):
         orchestrations = []
         partitioned_circuits = {device:[] for c in self.orchestrated_containers for device in c.get_devices()}
-        for circuit in circuit_provider.get():
+        for circuit in circuit_batch.circuits:
             for container in self.orchestrated_containers:
                 transpiled_circuits = {}
                 for channel in container.channels:
@@ -192,28 +186,9 @@ class QuantumContainerOrchestrator:
         return (orchestrations, partitioned_circuits)
     
     def execute(self, partitioned_circuits):
-        result_manager = ExecutionResultManager(self.orchestrated_containers)
+        return {device:device.execute_batch(circuits) for device, circuits in partitioned_circuits.items()}
 
-        for device, circuit_partition in partitioned_circuits.items():
-            max_job_size = self.qdevice_provider.max_job_size_for(device)
-            if max_job_size == None:
-                num_batches = 1
-                max_job_size = len(circuit_partition)
-            else:
-                num_batches = ceil(len(circuit_partition) / max_job_size)
-
-            for i in range(num_batches):
-                start_idx = max_job_size * i
-                end_idx = start_idx + max_job_size
-                circuit_batch = circuit_partition[start_idx:end_idx]
-                
-                partial_result = device.execute_batch(circuit_batch)
-
-                result_manager.register(device, partial_result)
-        
-        return result_manager
-
-    def aggregate_results(self, orchestrations, result_manager):
+    def aggregate_results(self, orchestrations, executions_results):
         for orch in orchestrations:
             original_circuit = orch[0]
             container = orch[1]
@@ -221,24 +196,12 @@ class QuantumContainerOrchestrator:
             
             measurements = []
             for channel, t_circuit in transpiled_circuits.items():
-                result = result_manager.get_result_for(channel.device, t_circuit)
-                measurements.append(Measurements(channel, result))
+                try:
+                    measurement = executions_results[channel.device].get_counts(t_circuit.qiskit_circuit)
+                except QiskitError:
+                    raise Exception("There are no measurements for circuit: " + t_circuit.id)
+
+                measurements.append(Measurements(channel, measurement))
             
             aggregate = container.aggregate(measurements)
             self.aggregated_results.append((original_circuit, container, aggregate, measurements))
-
-class ExecutionResultManager:
-    def __init__(self, containers) -> None:
-        self.results = {device:[] for c in containers for device in c.get_devices()}
-
-    def register(self, device, partial_result):
-        self.results[device].append(partial_result)
-
-    def get_result_for(self, device, circuit):
-        for device_result in self.results[device]:
-            try:
-                return device_result.get_counts(circuit.qiskit_circuit)
-            except QiskitError:
-                pass
-        
-        raise Exception("There are no measurements for circuit: " + circuit.id)

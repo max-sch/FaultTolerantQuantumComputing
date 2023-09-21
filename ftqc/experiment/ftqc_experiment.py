@@ -2,31 +2,28 @@ import json
 import re
 import math
 from typing import Any
+from provider.circuit_provider import CircuitProvider, RandomCircuitProvider
 from core.entities import QuantumContainerOrchestrator, Measurements
 from core.qchannels import QuantumRedundancyChannel
 from experiment.util import simulate_and_retrieve_best_solution, determine_position, save_results, load_results
 from evaluation.exp_eval import FtqcExperimentEvaluator
 
 class FaultTolerantQCExperiment:
-    def __init__(self, circuit_provider, qdevice_provider, *ft_qcontainers):
+    def __init__(self, *ft_qcontainers, circuit_provider = RandomCircuitProvider(500)):
         self.ft_qcontainers = list(ft_qcontainers)
-        self.circuit_provider = circuit_provider
-        self.qdevice_provider = qdevice_provider
+        self.circuit_provider: CircuitProvider = circuit_provider
 
     def run_experiment(self):
         results = []
-        
-        orch_result = QuantumContainerOrchestrator(self.ft_qcontainers, self.qdevice_provider)
-        orch_result.orchestrate_executions(self.circuit_provider)
-        for circuit in self.circuit_provider.get():
-            ground_truth = simulate_and_retrieve_best_solution(circuit)
-            for qcontainer in self.ft_qcontainers:
-                aggregated, single = orch_result.get_result_for(circuit, qcontainer)
-                if len(ground_truth) != 1:
-                    raise Exception("Only single solutions are considered as ground truth, no sets.")
-
-                results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
-        
+        for batch in self.circuit_provider.get():
+            orch_result = QuantumContainerOrchestrator(self.ft_qcontainers)
+            orch_result.orchestrate_executions(batch)
+            for circuit in batch.circuits:
+                ground_truth = simulate_and_retrieve_best_solution(circuit)
+                for qcontainer in self.ft_qcontainers:
+                    aggregated, single = orch_result.get_result_for(circuit, qcontainer)
+                    #TODO: check whether ground truth should be a set
+                    results.append(ExperimentResult(qcontainer.id, ground_truth[0], aggregated, single))
         return results
     
     def save(self, results, result_dir):
@@ -54,23 +51,21 @@ class ExperimentResult:
         self.top_ten_size = top_ten_size if top_ten_size != None else self._top_ten_size()
 
     def avg_postion(self):
-        '''Determines the average position of the correct state in the indivdual (non-aggregated) measurements'''
+        '''Determines the average position of the correct state in the indivdual (non-combined) measurements'''
         positions = [determine_position(self.ground_truth, measurements) for measurements in self.single_measurements]
 
         avg_pos = sum(positions) / len(positions)
         return round(avg_pos)
     
+
     def position_of_closest(self):
-        '''Determines the position of closest state vector to the correct state'''
-        closest = len(self.single_measurements[0].measurements)
+        '''Determines the position of the an individual measurements closest to the correct state'''
+        pos = None
         for measurements in self.single_measurements:
             pos = determine_position(self.ground_truth, measurements)
-            if pos < closest:
-                closest = pos
             if pos == 0:
-                break
-
-        return closest          
+                return pos
+        return pos          
 
     def position_of_agg(self):
         '''Determines the position of the aggregated measurements'''
