@@ -1,8 +1,11 @@
 from math import exp
+from random import randint
 
 default_conformity_threshold = 0.8
 agreement_multiplier = 0.75
 default_top_n_rate = 0.25
+max_top_n = 20
+min_top_n = 1
 
 class ConformalSet:
     def __init__(self, measurements, n) -> None:
@@ -26,9 +29,28 @@ class ConformalSet:
         return list(set(self.state_vecs) & set(other.state_vecs))
 
 class ConformalBasedMajorityVoting:
-    def __init__(self, agreement_threshold) -> None:
+    def __init__(self, agreement_threshold, measurements) -> None:
         self.agreement_threshold = agreement_threshold
+        self.measurements = measurements
 
+    def _get_highest_votes(self, votes):
+        counts = {}
+        for key, val in votes.items():
+            if val not in counts.keys():
+                counts[val] = []
+            counts[val].append(key)
+        
+        sorted_counts = sorted(counts.items(), key=lambda item: item[0], reverse=True)
+        return sorted_counts[0][1]
+    
+    def _handle_equal_majorities(self, votes, highest_votes):
+        vote_probs = {}
+        for vote in highest_votes:
+            vote_probs[vote] = sum(m.get_probability_for(vote) for m in self.measurements)
+        prob_votes = self._get_highest_votes(vote_probs)
+        ran_idx = randint(0, len(prob_votes) - 1)
+        votes[prob_votes[ran_idx]] += 1
+        
     def vote(self, conformal_sets):
         votes = {state_vec:0 for conformal_set in conformal_sets for state_vec in conformal_set.state_vecs}
         
@@ -41,6 +63,11 @@ class ConformalBasedMajorityVoting:
                 for state_vec in intersection:
                     votes[state_vec] += 1
         
+        highest_votes = self._get_highest_votes(votes)
+        have_equal_majorities = len(highest_votes) > 1
+        if have_equal_majorities:
+            self._handle_equal_majorities(votes, highest_votes)
+
         return votes 
 
 class ConformalSetsIterator:

@@ -120,7 +120,7 @@ class QuantumComputerSimulator(QuantumDevice):
 
 class IBMQuantumComputer(QuantumDevice):
     def __init__(self, backend, shots=4096) -> None:
-        super().__init__(backend.name(), shots=shots)
+        super().__init__(backend.backend_name, shots=shots)
         self.backend = backend
         self.shots = shots
 
@@ -207,7 +207,11 @@ class QuantumContainerOrchestrator:
                 end_idx = start_idx + max_job_size
                 circuit_batch = circuit_partition[start_idx:end_idx]
                 
-                partial_result = device.execute_batch(circuit_batch)
+                try:
+                    partial_result = device.execute_batch(circuit_batch)
+                except Exception as e:
+                    print("An error occured during executing the circuits: " + str(e))
+                    partial_result = {device:{} for _ in range(len(circuit_batch))}
 
                 result_manager.register(device, partial_result)
         

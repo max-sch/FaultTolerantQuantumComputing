@@ -59,7 +59,7 @@ class ExperimentResult:
     
     def position_of_closest(self):
         '''Determines the position of closest state vector to the correct state'''
-        closest = len(self.single_measurements[0].measurements)
+        closest = 2**len(self.ground_truth[0])
         for measurements in self.single_measurements:
             pos = determine_position(self.ground_truth, measurements)
             if pos < closest:
@@ -75,7 +75,9 @@ class ExperimentResult:
     
     def _top_ten_size(self):
         '''Determines the size of the top ten'''
-        return max(math.ceil(len(self.single_measurements) * 0.1), 3)
+        num_possible_results = 2**len(self.ground_truth[0])
+        top_ten_percent = math.ceil(num_possible_results * 0.1)
+        return max(top_ten_percent, 3)
     
     def from_json(json_dct):
         if all(re.fullmatch("[01]+", key) for key in json_dct.keys()):

@@ -12,7 +12,7 @@ class NumberOfTopTenCircuits(Metric):
     def evaluate(self, positions, top_ten):
         return sum(1 for i in range(len(positions)) if positions[i] <= top_ten[i])
 
-class DirectComparison(Metric):
+class DirectComparisonWithAgg(Metric):
     def evaluate(self, agg_positions, ref_positions):
         assert len(agg_positions) == len(ref_positions)
 

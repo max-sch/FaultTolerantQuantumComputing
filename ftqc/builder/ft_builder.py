@@ -7,7 +7,9 @@ from core.conformal_measurements import (ConformalBasedMajorityVoting,
                                          calculate_conformity, 
                                          default_conformity_threshold, 
                                          default_top_n_rate, 
-                                         agreement_multiplier)
+                                         agreement_multiplier,
+                                         max_top_n,
+                                         min_top_n)
 
 class FaultTolerantPatternBuilder:
     def __init__(self, pattern_name) -> None:
@@ -199,15 +201,15 @@ class ConformalMeasurementsBuilder(FaultTolerantPatternBuilder):
                 raise Exception("There must be at least two mearuements.")
             
             top_n = (int) (measurements[0].num_of_measured_states() * self.top_n_rate)
-            if (top_n < 1):
-                top_n = 1
+            top_n = min(top_n, max_top_n)
+            top_n = max(top_n, min_top_n)
 
             agreement_threshold = (int) (agreement_multiplier * top_n)
             if agreement_threshold < 1:
                 agreement_threshold = 1
 
             conformal_sets = [ConformalSet.top_n_of(m, top_n) for m in measurements]
-            votes = ConformalBasedMajorityVoting(agreement_threshold).vote(conformal_sets)
+            votes = ConformalBasedMajorityVoting(agreement_threshold, measurements).vote(conformal_sets)
             conformity = calculate_conformity(conformal_sets, top_n)
             return Measurements(None, votes, accepted=conformity >= self.conformity_threshold)
 

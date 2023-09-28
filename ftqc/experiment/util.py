@@ -20,9 +20,11 @@ def simulate_and_retrieve_best_solution(circuit):
 
 def determine_position(correct_states, measurements):
     max_count = 0
-    for state in correct_states:
-        if measurements.get_count_for(state) >= max_count:
-            best_state = state
+    for correct_state in correct_states:
+        count = measurements.get_count_for(correct_state)
+        if count >= max_count:
+            best_state = correct_state
+            max_count = count
     
     pos = 0
     for state in measurements.rank().keys():
