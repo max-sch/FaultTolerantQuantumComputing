@@ -1,14 +1,17 @@
 from math import exp
 from random import randint
+from core.combiner import LinearOpinionPool
+from core.entities import Measurements
+from core.qchannels import QuantumRedundancyChannel
 
 default_conformity_threshold = 0.8
-agreement_multiplier = 0.75
+agreement_multiplier = 0.5
 default_top_n_rate = 0.25
 max_top_n = 20
 min_top_n = 1
 
 class ConformalSet:
-    def __init__(self, measurements, n) -> None:
+    def __init__(self, measurements, n, channel=None) -> None:
         '''The measurements must be ordered according to their probabilities'''
         if n <= 0:
             raise Exception("The number of top n values to consider must be greater than zero")
@@ -17,10 +20,11 @@ class ConformalSet:
             n = len(measurements)
         
         self.state_vecs = measurements[:n]
+        self.channel = channel
 
     def top_n_of(measurements, n):
         elements = measurements.rank().keys()
-        return ConformalSet(list(elements), n)
+        return ConformalSet(list(elements), n, measurements.generated_from_channel)
 
     def intersection(self, other):
         if not isinstance(other, ConformalSet):
@@ -28,10 +32,56 @@ class ConformalSet:
 
         return list(set(self.state_vecs) & set(other.state_vecs))
 
-class ConformalBasedMajorityVoting:
+class ConformalBasedAggregation:
     def __init__(self, agreement_threshold, measurements) -> None:
         self.agreement_threshold = agreement_threshold
         self.measurements = measurements
+
+    def aggregate(self, conformal_sets):
+        pass
+
+class ConformalBasedLinearOpinionPool(ConformalBasedAggregation):
+    def __init__(self, agreement_threshold, measurements) -> None:
+        super().__init__(agreement_threshold, measurements)
+
+    def aggregate(self, conformal_sets):
+        weights = {}
+        weights_total = 0
+        cs_measurements = []
+        
+        for first, second in iter(ConformalSetsIterator(conformal_sets)):
+            intersection = first.intersection(second)
+            agreement_strength = len(intersection)
+            if agreement_strength >= self.agreement_threshold:
+                raw_measurements = {}
+                for state_vec in intersection:
+                    count_first = self._get_measurements_generated_from(first.channel).get_count_for(state_vec)
+                    count_second = self._get_measurements_generated_from(second.channel).get_count_for(state_vec)
+                    raw_measurements[state_vec] = count_first + count_second
+
+                helper_channel = QuantumRedundancyChannel(None)
+                cs_measurements.append(Measurements(helper_channel, raw_measurements))
+                
+                weights_total += agreement_strength
+
+                weights[helper_channel] = agreement_strength 
+
+        if len(cs_measurements) == 0:
+            return {}
+        
+        normalized_weights = {channel:(weight/weights_total) for channel, weight in weights.items()}
+        return LinearOpinionPool(normalized_weights).combine(cs_measurements).measurements
+    
+    def _get_measurements_generated_from(self, channel):
+        for m in self.measurements:
+            if m.generated_from_channel == channel:
+                return m
+        
+        raise Exception("There are no measurements generated from " + channel.id)
+
+class ConformalBasedMajorityVoting(ConformalBasedAggregation):
+    def __init__(self, agreement_threshold, measurements) -> None:
+        super().__init__(agreement_threshold, measurements)
 
     def _get_highest_votes(self, votes):
         counts = {}
@@ -68,7 +118,10 @@ class ConformalBasedMajorityVoting:
         if have_equal_majorities:
             self._handle_equal_majorities(votes, highest_votes)
 
-        return votes 
+        return votes
+
+    def aggregate(self, conformal_sets):
+        return self.vote(conformal_sets) 
 
 class ConformalSetsIterator:
     def __init__(self, conformal_sets) -> None:
@@ -80,12 +133,12 @@ class ConformalSetsIterator:
         return self
     
     def __next__(self):
-        if self.i == len(self.ordered_conf_sets) - 1:
-            raise StopIteration
-        
         if self.j == len(self.ordered_conf_sets) - 1:
             self.i += 1
-            self.j = self.i + 1 if self.i + 1 < len(self.ordered_conf_sets) else self.i
+            if self.i + 1 < len(self.ordered_conf_sets):
+                self.j = self.i + 1
+            else:
+                raise StopIteration
         else:
             self.j += 1
 

@@ -30,3 +30,21 @@ class DirectComparisonWithAgg(Metric):
         sum = better + equal + worse
 
         return (worse / sum, equal / sum, better / sum)
+    
+    def evaluate_with_single(self, results):
+        better = 0
+        equal = 0
+        worse = 0
+        for result in results:
+            agg_pos = result.position_of_agg()
+            for single_pos in result.position_singles():
+                if agg_pos == single_pos:
+                    equal += 1
+                elif agg_pos < single_pos:
+                    better += 1
+                else:
+                    worse += 1
+
+        sum = better + equal + worse
+
+        return (worse / sum, equal / sum, better / sum)

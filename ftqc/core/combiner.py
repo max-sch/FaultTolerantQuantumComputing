@@ -18,13 +18,16 @@ class LinearOpinionPool(MeasurementCombiner):
         
         combined_measurements = {}
 
-        measured_states = measurements[0].get_measured_states()
+        measured_states = set()
+        for m in measurements:
+            measured_states = measured_states.union(m.get_measured_states()) 
+        
         for measured_state in measured_states:
             normalized_counts = 0.0
             for measurement in measurements:
                 count = measurement.get_count_for(measured_state)
                 weight = self.weights[measurement.generated_from_channel]
-                normalized_counts += count * weight 
+                normalized_counts += round(count * weight) 
             
             combined_measurements[measured_state] = normalized_counts
 

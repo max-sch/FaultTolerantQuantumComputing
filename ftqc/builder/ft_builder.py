@@ -2,7 +2,8 @@ from core.combiner import LinearOpinionPool
 from core.entities import FaultTolerantQuantumContainer, Measurements
 from core.qswitches import QuantumSwitchUnit
 from core.qerror_detection import MeasurementComparison
-from core.conformal_measurements import (ConformalBasedMajorityVoting, 
+from core.conformal_measurements import (ConformalBasedMajorityVoting,
+                                         ConformalBasedLinearOpinionPool, 
                                          ConformalSet, 
                                          calculate_conformity, 
                                          default_conformity_threshold, 
@@ -200,7 +201,10 @@ class ConformalMeasurementsBuilder(FaultTolerantPatternBuilder):
             if len(measurements) < 2:
                 raise Exception("There must be at least two mearuements.")
             
-            top_n = (int) (measurements[0].num_of_measured_states() * self.top_n_rate)
+            measured_states = set()
+            for m in measurements:
+                measured_states = measured_states.union(m.get_measured_states())
+            top_n = (int) (len(measured_states) * self.top_n_rate)
             top_n = min(top_n, max_top_n)
             top_n = max(top_n, min_top_n)
 
@@ -209,7 +213,7 @@ class ConformalMeasurementsBuilder(FaultTolerantPatternBuilder):
                 agreement_threshold = 1
 
             conformal_sets = [ConformalSet.top_n_of(m, top_n) for m in measurements]
-            votes = ConformalBasedMajorityVoting(agreement_threshold, measurements).vote(conformal_sets)
+            votes = ConformalBasedLinearOpinionPool(agreement_threshold, measurements).aggregate(conformal_sets)
             conformity = calculate_conformity(conformal_sets, top_n)
             return Measurements(None, votes, accepted=conformity >= self.conformity_threshold)
 

@@ -63,7 +63,6 @@ class HybridQuantumDeviceProvider(QuantumDeviceProvider):
         devices = list(filtered)
         devices.append(self.default_device)
         return devices
-        
     
 class IBMQCredentials:
     def __init__(self, api_token, api_url, instance) -> None:

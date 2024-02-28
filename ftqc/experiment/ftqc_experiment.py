@@ -52,10 +52,14 @@ class ExperimentResult:
 
     def avg_postion(self):
         '''Determines the average position of the correct state in the indivdual (non-aggregated) measurements'''
-        positions = [determine_position(self.ground_truth, measurements) for measurements in self.single_measurements]
+        positions = self.position_singles()
 
         avg_pos = sum(positions) / len(positions)
         return round(avg_pos)
+    
+    def position_singles(self):
+        '''Determines the positions of the correct state of each indivdual (non-aggregated) measurements'''
+        return [determine_position(self.ground_truth, measurements) for measurements in self.single_measurements]
     
     def position_of_closest(self):
         '''Determines the position of closest state vector to the correct state'''

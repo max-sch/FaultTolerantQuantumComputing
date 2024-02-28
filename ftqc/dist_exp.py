@@ -12,7 +12,6 @@ from openpyxl.styles import Font, Alignment
 import os
 
 def evaluateDistances():
-    
     quantifiers = {
     "Shannon Entropy": MeasurementNoiseQuantifier.using_shannon_entropy(0.1),
     "KL Divergence": MeasurementNoiseQuantifier.using_kl_divergence(0.1),
@@ -31,9 +30,7 @@ def evaluateDistances():
     if not os.path.exists('histograms'):
         os.mkdir('histograms')
 
-    for batch in provider.get():
-        
-            
+    for batch in provider.get():  
         for noise in [False, True]:
             if noise:
                 simulator = QuantumComputerSimulator.create_noisy_simulator() 
@@ -63,11 +60,7 @@ def evaluateDistances():
                 for name, quantifier in quantifiers.items():
                     results_for_this_circuit[name] = quantifier.measure_closeness_to_uniform_dist(measurement)
                     
-                evaluation_results.append(results_for_this_circuit)
-
-           
-            
-            
+                evaluation_results.append(results_for_this_circuit) 
 
     df_evaluation = pd.DataFrame(evaluation_results)
     wb = Workbook()
@@ -92,7 +85,6 @@ def evaluateDistances():
         col_dimension = ws.column_dimensions[col[0].column_letter]
         if col_dimension.width < image_col_width:
             col_dimension.width = image_col_width
-
   
     for row in ws.iter_rows():
         for cell in row:
@@ -102,9 +94,6 @@ def evaluateDistances():
 
     # Save the workbook
     wb.save("results.xlsx")
-
-
-
 
 def evaluateCorrelation():
     quantifiers = {
@@ -125,10 +114,7 @@ def evaluateCorrelation():
     if not os.path.exists('histograms'):
         os.mkdir('histograms')
 
-    for batch in provider.get():
-        
-            
-          
+    for batch in provider.get():          
         simulator = QuantumComputerSimulator.create_noisy_simulator() 
         simulator.modify_noise()
 
@@ -166,10 +152,6 @@ def evaluateCorrelation():
                 
             evaluation_results.append(results_for_this_circuit)
 
-           
-            
-            
-
     df_evaluation = pd.DataFrame(evaluation_results)
     wb = Workbook()
     ws = wb.active
@@ -192,7 +174,7 @@ def evaluateCorrelation():
         correlation_results["Metric"].append(quantifier_name)
         correlation_results["Correlation with Match"].append(correlation)
 
-    # Konvertieren Sie die Korrelationsergebnisse in einen DataFrame und fügen Sie sie in das Arbeitsblatt ein
+    # Convert the correlation results in a DataFrame and insert into workbook
     correlation_df = pd.DataFrame(correlation_results)
     for r_idx, row in enumerate(dataframe_to_rows(correlation_df, index=False, header=True), ws.max_row + 2):
         for c_idx, value in enumerate(row, 1):
@@ -215,8 +197,6 @@ def evaluateCorrelation():
 
     # Save the workbook
     wb.save("results.xlsx")
-
-
 
 if __name__ == '__main__':
     evaluateCorrelation()

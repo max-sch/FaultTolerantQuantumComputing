@@ -1,61 +1,47 @@
-from builder.ft_builder import CombinerPatternBuilder
-from core.qchannels import DifferentOptimizationLevel, HeterogeneousQuantumDeviceBackend, VaryingTranspilationSeedGeneration
-from provider.qdevice_provider import FakeQuantumDeviceProvider
-from provider.circuit_provider import RandomCircuitProvider
+from provider.qdevice_provider import QuantumDeviceProvider, FakeQuantumDeviceProvider, HybridQuantumDeviceProvider, IBMQCredentials
+from provider.circuit_provider import QasmBasedCircuitProvider, RandomCircuitProvider
+from pattern_definition import build_patterns
 from experiment.ftqc_experiment import FaultTolerantQCExperiment
 from expsuite import PyExperimentSuite
 
-
+from builder.ft_builder import ConformalMeasurementsBuilder, CombinerPatternBuilder
+from core.qchannels import VaryingTranspilationSeedGeneration, DifferentOptimizationLevel, HeterogeneousQuantumDeviceBackend
+from core.entities import Measurements
 
 class FtqcExperimentSuite(PyExperimentSuite):
     def reset(self, params, rep):
         print("Start initializing the experiment")
 
-        self.results_dir = params["outputdir"]
+        ibmq_credentials = IBMQCredentials(api_token='api_token', api_url='api_url', instance='instance')
+        device_provider = HybridQuantumDeviceProvider(ibmq_credentials)
 
-        device_provider = FakeQuantumDeviceProvider()
-        #device_provider = QuantumDeviceProvider(params["backend"])
-        #device_provider = QuantumDeviceProvider(params["backend"], IBMQCredentials(params["apitoken"], params["apiurl"])
+        patterns = build_patterns(params, device_provider)        
 
-        builder = CombinerPatternBuilder("VaryingTranspilationSeedCombiner")
-        for _ in range(params["transpilations"]):
-            builder.add_channel(VaryingTranspilationSeedGeneration(device_provider.default_device))
-        builder.combine_measurements_uniformly()
-        varying_transpilation_seed_container = builder.build()
+        circuit_provider = RandomCircuitProvider(100, max_num_qubits=10, max_depth=40)
+        #circuit_provider = QasmBasedCircuitProvider(params["qasm_dir"])
 
-        builder = CombinerPatternBuilder("HeterogeneousQuantumDeviceBackendCombiner")
-        for device in device_provider.provided_devices():
-            builder.add_channel(HeterogeneousQuantumDeviceBackend(device))
-        builder.combine_measurements_uniformly()
-        heterogeneous_device_container = builder.build()
-
-        builder = CombinerPatternBuilder("DifferentOptimizationLevelCombiner")
-        for i in range(params["num_opt_level"]):
-            builder.add_channel(DifferentOptimizationLevel(device_provider.default_device, i))
-        builder.combine_measurements_uniformly()
-        different_opt_level_container = builder.build()
-
-        c_provider = RandomCircuitProvider(4, batch_size=2, max_num_qubits=3, max_depth=10)
-        self.ftqc_exp = FaultTolerantQCExperiment(varying_transpilation_seed_container,
-                                        heterogeneous_device_container,
-                                        different_opt_level_container,
-                                        circuit_provider=c_provider)
+        self.ftqc_exp = FaultTolerantQCExperiment(circuit_provider, device_provider, patterns)
 
     def iterate(self, params, rep, n):
         print('Start running the experiment')
 
-        exp_results = self.ftqc_exp.run_experiment()
-        self.ftqc_exp.save(exp_results, self.results_dir)
-        eval_results = self.ftqc_exp.evaluate(exp_results, self.results_dir)
+        results_dir = params["outputdir"]
 
-        ret = {"rep": rep, "iter": n, "eval_results": eval_results}
-        return ret
+        try:
+            result_file = params["result_file"]
+        except:
+            result_file = None
 
+        if result_file == None:
+            exp_results = self.ftqc_exp.run_experiment()
+            self.ftqc_exp.save(exp_results, results_dir)
+        else:
+            exp_results = self.ftqc_exp.load_from(result_file)
+            exp_results = [result for result in exp_results if result.agg_measurements.accepted]
+
+        eval_results = self.ftqc_exp.evaluate(exp_results, results_dir)
+
+        return {"rep": rep, "iter": n, "eval_results": eval_results}
 
 if __name__ == '__main__':
     FtqcExperimentSuite().start()
-
-    
-
-
-

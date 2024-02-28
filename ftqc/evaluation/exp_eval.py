@@ -18,9 +18,8 @@ class ApproachResult:
         fixed_pos_results = [result.position_of_closest() for result in self.results]
         top_ten_size = [result.top_ten_size for result in self.results]
 
-        #TODO: refatoring using enum
         return [[self.approach, "Avg", self.num_correct_evaluator.evaluate(avg_pos_results), self.num_top_ten_evaluator.evaluate(avg_pos_results, top_ten_size), self.direct_comparison_evaluator.evaluate(agg_pos_results, avg_pos_results)],
-            [self.approach, "Agg", self.num_correct_evaluator.evaluate(agg_pos_results), self.num_top_ten_evaluator.evaluate(agg_pos_results, top_ten_size), "-"],
+            [self.approach, "Agg", self.num_correct_evaluator.evaluate(agg_pos_results), self.num_top_ten_evaluator.evaluate(agg_pos_results, top_ten_size), self.direct_comparison_evaluator.evaluate_with_single(self.results)],
             [self.approach, "Fixed", self.num_correct_evaluator.evaluate(fixed_pos_results), self.num_top_ten_evaluator.evaluate(fixed_pos_results, top_ten_size), self.direct_comparison_evaluator.evaluate(agg_pos_results, fixed_pos_results)]]
         
 

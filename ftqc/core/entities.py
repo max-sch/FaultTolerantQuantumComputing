@@ -87,7 +87,6 @@ class QuantumComputerSimulator(QuantumDevice):
         simulator = Aer.get_backend('statevector_simulator')
         return QuantumComputerSimulator(simulator)
     
-    #TODO: check whether this can be achieved by just using fake providers for IBMQuantumComputer
     def create_noisy_simulator(backend=None, shots=1024):
         simulator = Aer.get_backend('qasm_simulator')
 
@@ -160,10 +159,11 @@ class FaultTolerantQuantumContainer:
         return hash(self.id)
     
 class QuantumContainerOrchestrator:
-    def __init__(self, qcontainers, qdevice_provider) -> None:
+    def __init__(self, qcontainers, qdevice_provider, execution_retries=3) -> None:
         self.orchestrated_containers = set(qcontainers)
         self.qdevice_provider = qdevice_provider
         self.aggregated_results = []
+        self.execution_retries = execution_retries; 
 
     def get_result_for(self, circuit, container):
         for entry in self.aggregated_results:
@@ -195,6 +195,8 @@ class QuantumContainerOrchestrator:
         result_manager = ExecutionResultManager(self.orchestrated_containers)
 
         for device, circuit_partition in partitioned_circuits.items():
+            print("Device: " + device.unique_name +  ", total number of circuits to be executed: " + str(len(circuit_partition)))
+
             max_job_size = self.qdevice_provider.max_job_size_for(device)
             if max_job_size == None:
                 num_batches = 1
@@ -206,12 +208,18 @@ class QuantumContainerOrchestrator:
                 start_idx = max_job_size * i
                 end_idx = start_idx + max_job_size
                 circuit_batch = circuit_partition[start_idx:end_idx]
+                print("Device: " + device.unique_name +  ", execute batch with size: " + str(len(circuit_batch)))
                 
-                try:
-                    partial_result = device.execute_batch(circuit_batch)
-                except Exception as e:
-                    print("An error occured during executing the circuits: " + str(e))
-                    partial_result = {device:{} for _ in range(len(circuit_batch))}
+                for i in range(self.execution_retries): 
+                    try:
+                        partial_result = device.execute_batch(circuit_batch)
+                        break
+                    except Exception as e:
+                        print("An error occured during executing the circuits: " + str(e))
+                        if (i + 1) == self.execution_retries:
+                            raise Exception("Execution was not successfully")
+                        else:
+                            print("Retry execution")
 
                 result_manager.register(device, partial_result)
         
