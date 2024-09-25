@@ -1,3 +1,4 @@
+import numpy as np
 from math import log, sqrt
 from core.conformal_measurements import ConformalSet, default_top_n_rate
 
@@ -44,9 +45,18 @@ def bhattacharyya(p_dist, q_dist):
 
 class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def __init__(self, f_divergence, threshold) -> None:
-        def closeness_to_uniform_dist(measurements):
-            p_dist = measurements.get_probabilities()
-            q_dist = [1/measurements.num_counts for _ in range(len(p_dist))]
+        def closeness_to_uniform_dist(measurements, expectation=None):
+            p_dist = measurements
+            if not isinstance(measurements, np.ndarray):
+                p_dist = measurements.get_probabilities()
+            p_dist = np.sort(p_dist)
+
+            if expectation is None:
+                q_dist = [1/measurements.num_counts for _ in range(len(p_dist))]
+            else:
+                q_dist = np.full(len(p_dist), 0.0)
+                q_dist[:len(expectation)] = expectation
+                q_dist = np.sort(q_dist)
             return f_divergence(p_dist, q_dist)
         self.measure_closeness_to_uniform_dist = closeness_to_uniform_dist
         self.threshold = threshold
@@ -74,12 +84,12 @@ class MeasurementNoiseQuantifier(QuantumFaultDetector):
     def accept(self, measurements):
         return not self.reject(measurements)
     
-    def reject(self, measurements):
+    def reject(self, measurements, d_dist=None):
         if len(measurements) != 1:
             raise Exception("There must be only a single set of measurements.")
-        
-        closeness = self.measure_closeness_to_uniform_dist(measurements[0])
-        return closeness < self.threshold
+
+        distance = self.measure_closeness_to_uniform_dist(measurements[0], d_dist)
+        return distance > self.threshold
     
 class MeasurementComparison(QuantumFaultDetector):
     def __init__(self, primary_channel, comparator_channel, num_matching_solutions=None) -> None:

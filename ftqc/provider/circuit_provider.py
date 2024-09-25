@@ -1,3 +1,4 @@
+from mqt.bench import get_benchmark
 import random
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit import QuantumCircuit
@@ -34,6 +35,29 @@ class QasmBasedCircuitProvider(CircuitProvider):
                 self.circuits[prefix] = []    
 
             self.circuits[prefix].append(circuit)
+
+    def get(self):
+        return [circuit for key in self.circuits.keys() for circuit in self.circuits[key]]
+
+class MQTCircuitProvider(CircuitProvider):
+    def __init__(self) -> None:
+        self.circuits = {}
+        max_qubits = 4 
+
+        #self.circuits["dj"] = []
+        #for i in range(8, max_qubits):
+            #qiskit_circuit = get_benchmark(benchmark_name="dj", level="alg", circuit_size=i)
+            #name = "dj" + str(i)
+            #circuit = Circuit(name, qiskit_circuit)
+            #self.circuits["dj"].append(circuit)
+
+        self.circuits["grover"] = []
+        for i in range(3, max_qubits):
+            qiskit_circuit = get_benchmark(benchmark_name="grover-noancilla", level="alg", circuit_size=i)
+            name = "grover" + str(i)
+            circuit = Circuit(name, qiskit_circuit)
+            self.circuits["grover"].append(circuit)
+
 
     def get(self):
         return [circuit for key in self.circuits.keys() for circuit in self.circuits[key]]

@@ -1,10 +1,11 @@
 import json
 import re
 import math
+import numpy as np
 from typing import Any
 from core.entities import QuantumContainerOrchestrator, Measurements
 from core.qchannels import QuantumRedundancyChannel
-from experiment.util import simulate_and_retrieve_best_solution, determine_position, save_results, load_results
+from experiment.util import simulate_wihtout_error, determine_position, save_results, load_results
 from evaluation.exp_eval import FtqcExperimentEvaluator
 
 class FaultTolerantQCExperiment:
@@ -19,10 +20,10 @@ class FaultTolerantQCExperiment:
         orch_result = QuantumContainerOrchestrator(self.ft_qcontainers, self.qdevice_provider)
         orch_result.orchestrate_executions(self.circuit_provider)
         for circuit in self.circuit_provider.get():
-            ground_truth = simulate_and_retrieve_best_solution(circuit)
+            probs = simulate_wihtout_error(circuit)
             for qcontainer in self.ft_qcontainers:
                 aggregated, single = orch_result.get_result_for(circuit, qcontainer)
-                results.append(ExperimentResult(qcontainer.id, ground_truth, aggregated, single))
+                results.append(ExperimentResult(qcontainer.id, aggregated, single, probs))
         
         return results
     
@@ -40,14 +41,20 @@ class ExperimentResult:
             def default(self, o: Any) -> Any:
                 if isinstance(o, QuantumRedundancyChannel):
                     return o.id
+                if isinstance(o, np.ndarray):
+                    return o.tolist()
                 
                 return o.__dict__
 
-    def __init__(self, ft_qcontainer_id, ground_truth, agg_measurements, single_measurements, top_ten_size=None) -> None:
+    def __init__(self, ft_qcontainer_id, agg_measurements, single_measurements, probs, top_ten_size=None) -> None:
         self.ft_qcontainer = ft_qcontainer_id
-        self.ground_truth = ground_truth
         self.agg_measurements = agg_measurements
         self.single_measurements = single_measurements
+        self.probs = probs
+        bestIdxs = np.argwhere(probs == np.amax(probs)).flatten().tolist()
+        n = (int)(math.log2(len(probs)))
+        getbinary = lambda x, n: format(x, 'b').zfill(n)
+        self.ground_truth = [getbinary(i, n) for i in bestIdxs]
         self.top_ten_size = top_ten_size if top_ten_size != None else self._top_ten_size()
 
     def avg_postion(self):
@@ -56,6 +63,9 @@ class ExperimentResult:
 
         avg_pos = sum(positions) / len(positions)
         return round(avg_pos)
+
+    def hellinger_diff(self):
+        return ut
     
     def position_singles(self):
         '''Determines the positions of the correct state of each indivdual (non-aggregated) measurements'''
@@ -76,6 +86,8 @@ class ExperimentResult:
     def position_of_agg(self):
         '''Determines the position of the aggregated measurements'''
         return determine_position(self.ground_truth, self.agg_measurements)
+
+    
     
     def _top_ten_size(self):
         '''Determines the size of the top ten'''
@@ -94,9 +106,9 @@ class ExperimentResult:
         
         if "ft_qcontainer" in json_dct.keys():
             return ExperimentResult(json_dct["ft_qcontainer"],
-                                    json_dct["ground_truth"],
                                     json_dct["agg_measurements"],
                                     json_dct["single_measurements"],
+                                    json_dct["probs"],
                                     json_dct["top_ten_size"])
         
         raise TypeError("There is no proper type for " + json_dct)

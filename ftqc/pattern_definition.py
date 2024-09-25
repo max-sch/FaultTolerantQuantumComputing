@@ -4,6 +4,18 @@ from core.qerror_detection import MeasurementNoiseQuantifier, MeasurementCompari
 from core.qswitches import SimpleQuantumRedundancySwitch
 from provider.qdevice_provider import FakeQuantumDeviceProvider
 
+
+def build_some_patterns(params, device_provider):
+    patterns = []
+    builder = CombinerPatternBuilder("C_seed")
+    for _ in range(params["transpilations"]):
+        builder.add_channel(VaryingTranspilationSeedGeneration(device_provider.default_device))
+    builder.combine_measurements_uniformly()
+    pattern = builder.build()
+
+    patterns.append(pattern)
+    return patterns
+
 def build_patterns(params, device_provider):
     patterns = []
 

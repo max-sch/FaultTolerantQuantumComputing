@@ -5,18 +5,32 @@ from math import log2
 from os import mkdir
 from os.path import join, exists
 from core.entities import QuantumComputerSimulator
+from qiskit.quantum_info import Statevector  
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit_aer import Aer 
+from qiskit import transpile
 
 def simulate(batch):
-    return [simulate_and_retrieve_best_solution(c) for c in batch]
+    return [simulate_wihtout_error(c) for c in batch]
 
-def simulate_and_retrieve_best_solution(circuit):
-    result = QuantumComputerSimulator.create_perfect_simulator().execute(circuit)
-    stv = result.get_statevector(circuit.qiskit_circuit, decimals=3)
-    probs = stv.probabilities()
-    bestIdxs = np.argwhere(probs == np.amax(probs)).flatten().tolist()
-    n = (int)(log2(len(probs)))
-    getbinary = lambda x, n: format(x, 'b').zfill(n)
-    return [getbinary(i, n) for i in bestIdxs]
+def circuit_with_measurements(circuit):
+    l = []
+    for o in circuit.data:
+        if o.name == 'measure':
+            for qb in o.qubits:
+                l.append(circuit.find_bit(qb).index)
+    return l
+
+def simulate_wihtout_error(circuit):
+    #result = QuantumComputerSimulator.create_perfect_simulator().execute(circuit)
+    #print(circuit.qiskit_circuit)
+    #print(circuit.qiskit_circuit.data)
+    measuredQubits = circuit_with_measurements(circuit.qiskit_circuit)
+    backend = Aer.get_backend('statevector_simulator')
+    c = transpile(circuit.qiskit_circuit, backend)
+    stv = backend.run(c, shots=1).result().get_statevector()
+    probs = stv.probabilities(measuredQubits)
+    return probs
 
 def determine_position(correct_states, measurements):
     max_count = 0

@@ -1,4 +1,4 @@
-from qiskit import Aer, execute
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit_aer.noise import NoiseModel, depolarizing_error
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -75,7 +75,7 @@ class QuantumDevice:
 
 class QuantumComputerSimulator(QuantumDevice):
     def __init__(self, simulator, noise_model_backend=None, shots=None, custom_noise_model=False) -> None:
-        super().__init__(simulator.name() if noise_model_backend == None else simulator.name() + "_" + noise_model_backend.name(), shots=shots)
+        super().__init__(simulator.name if noise_model_backend == None else simulator.name + "_" + noise_model_backend.name(), shots=shots)
         self.simulator = simulator
         self.noise_model = NoiseModel.from_backend(noise_model_backend, warnings=False) if noise_model_backend != None else None
         self.shots = shots
@@ -84,11 +84,11 @@ class QuantumComputerSimulator(QuantumDevice):
 
 
     def create_perfect_simulator():
-        simulator = Aer.get_backend('statevector_simulator')
+        simulator = BasicSimulator()
         return QuantumComputerSimulator(simulator)
     
     def create_noisy_simulator(backend=None, shots=1024):
-        simulator = Aer.get_backend('qasm_simulator')
+        simulator = BasicSimulator()
 
         return QuantumComputerSimulator(simulator, 
                                         noise_model_backend=backend, 
@@ -99,12 +99,12 @@ class QuantumComputerSimulator(QuantumDevice):
         return self.simulator
 
     def execute(self, circuit):
-        job = execute(circuit.qiskit_circuit, self.simulator, shots=self.shots, noise_model=self.noise_model)
+        job = self.simulator.run(circuit.qiskit_circuit, shots=self.shots, noise_model=self.noise_model)
         return job.result()
     
     def execute_batch(self, circuits):
         qiskit_circuits = [c.qiskit_circuit for c in circuits]
-        job = execute(qiskit_circuits, self.simulator, shots=self.shots, noise_model=self.noise_model)
+        job = self.simulator.run(qiskit_circuits, shots=self.shots, noise_model=self.noise_model)
         return job.result()
 
     def modify_noise(self):
@@ -119,17 +119,17 @@ class QuantumComputerSimulator(QuantumDevice):
 
 class IBMQuantumComputer(QuantumDevice):
     def __init__(self, backend, shots=4096) -> None:
-        super().__init__(backend.backend_name, shots=shots)
+        super().__init__("GenericBackend", shots=shots)
         self.backend = backend
         self.shots = shots
 
     def execute(self, circuit):
-        job = execute(circuit.qiskit_circuit, self.backend, shots=self.shots)
+        job = self.backend.run(circuit.qiskit_circuit, shots=self.shots)
         return job.result()
 
     def execute_batch(self, circuits):
         qiskit_circuits = [c.qiskit_circuit for c in circuits]
-        job = execute(qiskit_circuits, self.backend, shots=self.shots)
+        job = self.backend.run(qiskit_circuits, shots=self.shots)
         return job.result()
     
     def get_backend(self):
