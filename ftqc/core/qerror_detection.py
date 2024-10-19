@@ -2,6 +2,25 @@ import numpy as np
 from math import log, sqrt
 from core.conformal_measurements import ConformalSet, default_top_n_rate
 
+class QuantumComparatorMetric:
+    def compare(self, measurementsA, measurementsB):
+        raise NotImplemented("This is an abstract comparator and has to be implemented")
+
+class MaxComparator(QuantumComparatorMetric):
+    def compare(self, measurementsA, measurementsB):
+        max_keyA = max(measurementsA, key=measurementsA.get)
+        max_keyB = max(measurementsB, key=measurementsB.get)
+        return max_keyA == max_keyB
+
+class DistComparator(QuantumComparatorMetric):
+    def __init__(self, metric, threshold) -> None:
+        super().__init__()
+        self.metric = metric
+        self.threshold = threshold
+
+    def compare(self, measurementsA, measurementsB):
+        return self.metric(measurementsA, measurementsB) < self.threshold
+
 class QuantumFaultDetector:
     def accept(self, measurments):
         '''Main method for checking measurements in terms of faults'''

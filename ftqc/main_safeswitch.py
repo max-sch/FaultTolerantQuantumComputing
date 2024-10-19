@@ -1,8 +1,9 @@
 import numpy as np
 from qiskit.providers.basic_provider import BasicSimulator
 from mqt.bench import get_benchmark
-from core.qerror_detection import QuantumFaultDetector, MeasurementNoiseQuantifier
+from core.qerror_detection import QuantumFaultDetector, MeasurementNoiseQuantifier, QuantumComparatorMetric, MaxComparator, DistComparator
 from qiskit import transpile
+from itertools import combinations
 
 class RunConfiguration:
     def __init__(self) -> None:
@@ -38,6 +39,22 @@ class QuantumSwitch():
         total = sum(counts.values())
         return np.fromiter(counts.values(), dtype=float)/total
 
+class QuantumComparator:
+    def __init__(self, comparator: QuantumComparatorMetric, channels) -> None:
+        self.comparator = comparator
+        self.channels = channels
+
+    def execute(self, circuit):
+        results = list(map(lambda x: x.execute(circuit), self.channels))
+        pairs = combinations(results, 2)
+    
+        for a, b in pairs:
+            if not self.comparator.compare(a, b):
+                return None
+        
+        return results[0]
+
+
 class Distribution():
     def __init__(self) -> None:
         pass
@@ -57,8 +74,12 @@ class DiracDist(Distribution):
 def run_experiment():
     qiskit_circuit = get_benchmark(benchmark_name="grover-noancilla", level="alg", circuit_size=5)
 
-    qs = QuantumSwitch(DefaultRunConfiguration(), DefaultRunConfiguration(), MeasurementNoiseQuantifier.using_hellinger(0.1), EquiDist(1))
-    qs.execute(qiskit_circuit)
+    #qs = QuantumSwitch(DefaultRunConfiguration(), DefaultRunConfiguration(), MeasurementNoiseQuantifier.using_hellinger(0.1), EquiDist(1))
+    #qs.execute(qiskit_circuit)
+
+    qc = QuantumComparator(MaxComparator(), [DefaultRunConfiguration(), DefaultRunConfiguration()])
+    res = qc.execute(qiskit_circuit)
+    print(res)
 
 if __name__ == "__main__":
     run_experiment()
